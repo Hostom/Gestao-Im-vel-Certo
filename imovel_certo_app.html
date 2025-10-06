@@ -3,426 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão de Captação - Imóvel Certo</title>
+    <title>Sistema de Gestão de Captação</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide-react@0.292.0/dist/lucide-react.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .kanban-column { min-height: 400px; }
+        .kanban-column { min-width: 300px; }
     </style>
 </head>
 <body class="bg-gray-100">
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- Backend API Configuration ---
-        // As chamadas de API estão temporariamente desabilitadas e simuladas com dados locais.
-        // Quando seu backend no Railway estiver pronto, remova os dados mocados e reative as chamadas 'fetch'.
-        const API_URL = 'https://sua-api.railway.app'; // Coloque a URL da sua API no Railway aqui quando estiver pronta.
+        // --- CONFIGURAÇÃO DA API ---
+        const API_URL = 'gestao-im-vel-certo-production.up.railway.app'; // Ex: https://meu-backend-1234.up.railway.app
+        // -------------------------
 
-        const { useState, useEffect, Fragment } = React;
-        const { createRoot } = ReactDOM;
+        const { useState, useEffect, useCallback, useMemo } = React;
+        const { Home, FilePlus, Columns, Trophy, BarChart2, Clock, User, Phone, HomeIcon, MapPin, Search, Star, Building, Briefcase, Calendar } = lucide-react;
 
-        // --- DADOS VINDOS DA SUA PLANILHA 'Listas.csv' ---
-        const listas = {
-            consultores: ["Israel", "Matheus", "Bruna K", "Kerolin", "Stephanie"],
-            captadores: ["Bruna S", "Michele", "Morgana"],
-            tiposImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
-            finalidade: ["Residencial", "Comercial"],
-            prazos: ["Urgente", "Até 7 dias", "Até 15 dias"],
-            statusMissao: ["Em busca", "Encontrado", "Locado", "Sem opção"],
-            bairros: ["Centro", "Pioneiros", "Barra Norte", "Meia Praia", "Morretes", "Taboleiro"],
-            faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"]
+        // --- COMPONENTES DA UI ---
+        const Icon = ({ name, ...props }) => {
+            const LucideIcon = lucide[name];
+            return LucideIcon ? <LucideIcon {...props} /> : null;
         };
-        
-        // --- DADOS MOCADOS PARA SIMULAR O BACKEND ---
-        const mockDemandas = [
-            { id: 'dem1', codigoDemanda: 'LOC-A1B2', consultorLocacao: 'Matheus', clienteInteressado: 'Thiago', contato: '606060606', tipoImovel: 'Apartamento', regiaoDesejada: 'Centro', faixaAluguel: '8000', caracteristicasDesejadas: 'Frente mar', prazoNecessidade: 'Urgente', observacoes: 'frente para o rio', dataSolicitacao: new Date().toISOString() },
-        ];
 
-        const mockMissoes = [
-            { id: 'mis1', codigoDemanda: 'LOC-A1B2', dataMissao: new Date(Date.now() - 10 * 3600 * 1000).toISOString(), captadorResponsavel: 'Bruna S', consultorSolicitante: 'Matheus', regiaoBairro: 'Centro', descricaoBusca: 'Frente mar', status: 'Em busca', dataRetorno: null },
-            { id: 'mis2', codigoDemanda: 'LOC-C3D4', dataMissao: new Date(Date.now() - 50 * 3600 * 1000).toISOString(), captadorResponsavel: 'Michele', consultorSolicitante: 'Israel', regiaoBairro: 'Meia Praia', descricaoBusca: '3 suítes, 2 vagas', status: 'Encontrado', dataRetorno: new Date(Date.now() - 2 * 3600 * 1000).toISOString() },
-            { id: 'mis3', codigoDemanda: 'LOC-E5F6', dataMissao: new Date(Date.now() - 120 * 3600 * 1000).toISOString(), captadorResponsavel: 'Morgana', consultorSolicitante: 'Bruna K', regiaoBairro: 'Pioneiros', descricaoBusca: 'Cobertura duplex', status: 'Locado', dataRetorno: new Date(Date.now() - 90 * 3600 * 1000).toISOString() },
-        ];
-
-
-        // --- MAIN APP COMPONENT ---
-        function App() {
-            const [view, setView] = useState('missoes_captacao');
+        const App = () => {
+            const [view, setView] = useState('painel'); // painel, nova, missoes, ranking
             const [missoes, setMissoes] = useState([]);
             const [demandas, setDemandas] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
 
-            // Função para carregar os dados (agora simulada)
-            const fetchData = async () => {
+            const fetchData = useCallback(async () => {
                 setLoading(true);
                 setError(null);
-                // Simula uma chamada de API com 0.5s de atraso
-                setTimeout(() => {
-                    setMissoes(mockMissoes);
-                    setDemandas(mockDemandas);
-                    setLoading(false);
-                }, 500);
-
-                /*
-                // CÓDIGO REAL DA API (REATIVE QUANDO O BACKEND ESTIVER PRONTO)
                 try {
-                    setLoading(true);
-                    const missoesRes = await fetch(`${API_URL}/api/missoes`);
-                    const demandasRes = await fetch(`${API_URL}/api/demandas`);
+                    const [missoesRes, demandasRes] = await Promise.all([
+                        fetch(`${API_URL}/api/missoes`),
+                        fetch(`${API_URL}/api/demandas`)
+                    ]);
                     
                     if (!missoesRes.ok || !demandasRes.ok) {
-                        throw new Error('Falha ao buscar dados da API. Verifique se o backend está rodando.');
+                         throw new Error(`HTTP error! Missoes status: ${missoesRes.status}, Demandas status: ${demandasRes.status}`);
                     }
+
                     const missoesData = await missoesRes.json();
                     const demandasData = await demandasRes.json();
+                    
                     setMissoes(missoesData);
                     setDemandas(demandasData);
-                } catch (err) {
-                    console.error("Fetch error:", err);
-                    setError(err.message);
+
+                } catch (e) {
+                    console.error("Fetch error:", e);
+                    setError("Não foi possível carregar os dados da API. Verifique a URL e se o backend está no ar.");
                 } finally {
                     setLoading(false);
                 }
-                */
-            };
-            
-            useEffect(() => {
-                fetchData();
             }, []);
 
-            const addDemanda = async (novaDemanda) => {
-                // Simulação local: A lógica da roleta é simulada aqui.
-                const ultimoCaptador = missoes.length > 0 ? missoes.sort((a,b) => new Date(b.dataMissao) - new Date(a.dataMissao))[0].captadorResponsavel : listas.captadores[listas.captadores.length - 1];
-                const ultimoIndex = listas.captadores.indexOf(ultimoCaptador);
-                const proximoCaptador = listas.captadores[(ultimoIndex + 1) % listas.captadores.length];
+            useEffect(() => {
+                fetchData();
+            }, [fetchData]);
 
-                const novaMissao = {
-                    id: `mis${Date.now()}`,
-                    codigoDemanda: `LOC-${Date.now().toString().slice(-4)}`,
-                    dataMissao: new Date().toISOString(),
-                    captadorResponsavel: proximoCaptador,
-                    consultorSolicitante: novaDemanda.consultorLocacao,
-                    regiaoBairro: novaDemanda.regiaoDesejada,
-                    descricaoBusca: novaDemanda.caracteristicasDesejadas,
-                    status: 'Em busca',
-                    dataRetorno: null
-                };
-                
-                setMissoes(prev => [...prev, novaMissao]);
-                setDemandas(prev => [...prev, { ...novaDemanda, id: `dem${Date.now()}` }]);
-                setView('missoes_captacao');
+            const handleUpdateStatus = async (missaoId, newStatus) => {
+                const originalMissoes = [...missoes];
+                // Optimistic update
+                const updatedMissoes = missoes.map(m => m.id === missaoId ? { ...m, status: newStatus } : m);
+                setMissoes(updatedMissoes);
 
-                /*
-                // CÓDIGO REAL DA API (REATIVE QUANDO O BACKEND ESTIVER PRONTO)
                 try {
-                    const response = await fetch(`${API_URL}/api/demandas`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(novaDemanda)
-                    });
-                    if (!response.ok) throw new Error('Falha ao criar nova demanda.');
-                    await fetchData();
-                    setView('missoes_captacao');
-                } catch(err) {
-                    console.error("Error adding document: ", err);
-                    alert("Erro ao adicionar demanda. Verifique o console para mais detalhes.");
-                }
-                */
-            };
-            
-            const updateMissaoStatus = async (missaoId, novoStatus) => {
-                // Simulação local
-                setMissoes(prevMissoes => prevMissoes.map(m => 
-                    m.id === missaoId ? { ...m, status: novoStatus, dataRetorno: (novoStatus === 'Encontrado' || novoStatus === 'Locado') ? new Date().toISOString() : m.dataRetorno } : m
-                ));
-
-                /*
-                // CÓDIGO REAL DA API (REATIVE QUANDO O BACKEND ESTIVER PRONTO)
-                 try {
                     const response = await fetch(`${API_URL}/api/missoes/${missaoId}/status`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: novoStatus })
+                        body: JSON.stringify({ status: newStatus }),
                     });
-                     if (!response.ok) throw new Error('Falha ao atualizar o status da missão.');
-                    // Atualiza o estado local para uma resposta visual imediata
-                    setMissoes(prevMissoes => prevMissoes.map(m => 
-                        m.id === missaoId ? { ...m, status: novoStatus } : m
-                    ));
-                 } catch(err) {
-                    console.error("Error updating status: ", err);
-                    alert("Erro ao atualizar status. O Kanban pode não refletir a mudança.");
-                 }
-                */
+                    if (!response.ok) {
+                        throw new Error('Falha ao atualizar o status.');
+                    }
+                    // Opcional: Recarregar dados para garantir consistência
+                    // fetchData(); 
+                } catch (error) {
+                    console.error("Erro ao atualizar status:", error);
+                    // Rollback em caso de erro
+                    setMissoes(originalMissoes);
+                    alert("Não foi possível atualizar o status. Tente novamente.");
+                }
             };
-
+            
             const renderView = () => {
-                switch (view) {
-                    case 'power_bi':
-                        return <PowerBIDashboard />;
-                    case 'demandas_locacao':
-                        return <DemandasLocacao onAddDemanda={addDemanda} />;
-                    case 'missoes_captacao':
-                        return <MissoesCaptacao missoes={missoes} onUpdateStatus={updateMissaoStatus} />;
-                    case 'ranking_captadores':
-                        return <RankingCaptadores missoes={missoes} />;
-                    default:
-                        return <MissoesCaptacao missoes={missoes} onUpdateStatus={updateMissaoStatus} />;
+                if (loading) return <div className="flex justify-center items-center h-screen"><Clock className="animate-spin mr-2" />Carregando dados...</div>;
+                if (error) return <div className="flex justify-center items-center h-screen text-red-500 font-semibold p-4 bg-red-100 rounded-lg">{error}</div>;
+
+                switch(view) {
+                    case 'painel': return <PainelExecutivo missoes={missoes} demandas={demandas} />;
+                    case 'nova': return <NovaDemanda onDemandaCriada={fetchData} />;
+                    case 'missoes': return <MissoesCaptacao missoes={missoes} onUpdateStatus={handleUpdateStatus} />;
+                    case 'ranking': return <RankingCaptadores missoes={missoes} />;
+                    default: return <PainelExecutivo missoes={missoes} demandas={demandas} />;
                 }
             };
 
-            if (error) {
-                return (
-                    <div className="flex items-center justify-center h-screen">
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-md max-w-lg text-center">
-                            <strong className="font-bold">Erro de Conexão!</strong>
-                            <p className="block sm:inline mt-2">{error}</p>
-                            <p className="mt-2 text-sm">Certifique-se que sua API está rodando no Railway e acessível.</p>
-                        </div>
-                    </div>
-                );
-            }
-
             return (
-                <div className="min-h-screen flex">
-                    <nav className="w-64 bg-gray-800 text-white p-5 flex flex-col">
-                        <h1 className="text-2xl font-bold mb-10">Imóvel Certo</h1>
-                        <ul>
-                            <NavItem icon="📋" text="Missões de Captação" active={view === 'missoes_captacao'} onClick={() => setView('missoes_captacao')} />
-                            <NavItem icon="➕" text="Nova Demanda" active={view === 'demandas_locacao'} onClick={() => setView('demandas_locacao')} />
-                            <NavItem icon="🏆" text="Ranking Captadores" active={view === 'ranking_captadores'} onClick={() => setView('ranking_captadores')} />
-                            <NavItem icon="📊" text="Dashboard Power BI" active={view === 'power_bi'} onClick={() => setView('power_bi')} />
-                        </ul>
-                    </nav>
-                    <main className="flex-1 p-10">
-                        {loading ? <div className="text-center text-xl">Carregando dados...</div> : renderView()}
+                <div className="flex h-screen bg-gray-50">
+                    <aside className="w-64 bg-white shadow-md flex flex-col">
+                        <div className="p-4 border-b">
+                            <h1 className="text-xl font-bold text-gray-800">Imóvel Certo</h1>
+                            <p className="text-sm text-gray-500">Gestão de Captação</p>
+                        </div>
+                        <nav className="flex-1 p-2 space-y-2">
+                           <NavItem icon={BarChart2} text="Painel Executivo" active={view === 'painel'} onClick={() => setView('painel')} />
+                           <NavItem icon={FilePlus} text="Nova Demanda" active={view === 'nova'} onClick={() => setView('nova')} />
+                           <NavItem icon={Columns} text="Missões de Captação" active={view === 'missoes'} onClick={() => setView('missoes')} />
+                           <NavItem icon={Trophy} text="Ranking Captadores" active={view === 'ranking'} onClick={() => setView('ranking')} />
+                        </nav>
+                    </aside>
+                    <main className="flex-1 p-6 overflow-auto">
+                        {renderView()}
                     </main>
                 </div>
             );
-        }
+        };
 
-        const NavItem = ({ icon, text, active, onClick }) => (
-            <li className={`mb-4 cursor-pointer p-3 rounded-lg flex items-center ${active ? 'bg-blue-600' : 'hover:bg-gray-700'}`} onClick={onClick}>
-                <span className="mr-3 text-xl">{icon}</span>
-                <span className="font-medium">{text}</span>
-            </li>
+        const NavItem = ({ icon: Icon, text, active, onClick }) => (
+            <button onClick={onClick} className={`w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${active ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}>
+                <Icon size={20} className="mr-3" />
+                {text}
+            </button>
         );
         
-        function PowerBIDashboard() {
-            // TODO: Substitua a URL abaixo pela URL pública do seu relatório Power BI
-            const powerBiUrl = "https://app.powerbi.com/view?r=eyJrIjoiYOUR_REPORT_ID_HERE....";
+        // --- PÁGINAS ---
+        const PainelExecutivo = ({ missoes, demandas }) => {
+            const kpis = useMemo(() => {
+                const missoesEnviadas = missoes.length;
+                const missoesConcluidas24h = missoes.filter(m => {
+                    if (!m.data_retorno) return false;
+                    const diff = new Date(m.data_retorno).getTime() - new Date(m.data_missao).getTime();
+                    return diff / (1000 * 60 * 60) <= 24;
+                }).length;
+                const locados = missoes.filter(m => m.status === 'Locado').length;
+                const taxaConversao = missoesEnviadas > 0 ? ((locados / missoesEnviadas) * 100).toFixed(1) + '%' : '0%';
+                
+                const tempos = missoes.filter(m => m.data_retorno).map(m => new Date(m.data_retorno).getTime() - new Date(m.data_missao).getTime());
+                const tempoMedioMs = tempos.length > 0 ? tempos.reduce((a,b) => a+b, 0) / tempos.length : 0;
+                const tempoMedioHoras = (tempoMedioMs / (1000 * 60 * 60)).toFixed(1);
+
+                return {
+                    totalDemandas: demandas.length,
+                    missoesEnviadas,
+                    missoesConcluidas24h,
+                    taxaConversao,
+                    tempoMedioHoras,
+                };
+            }, [missoes, demandas]);
+
+            const statusCounts = useMemo(() => {
+                return missoes.reduce((acc, m) => {
+                    acc[m.status] = (acc[m.status] || 0) + 1;
+                    return acc;
+                }, {});
+            }, [missoes]);
 
             return (
-                 <Fragment>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Painel Executivo (Power BI)</h2>
-                    <div className="bg-white p-6 rounded-lg shadow-md text-center">
-                         <p className="text-gray-700 mb-6">Os indicadores de performance e KPIs são visualizados através do nosso dashboard no Power BI, que se conecta diretamente ao nosso banco de dados para análises ricas e detalhadas.</p>
-                         <a 
-                            href={powerBiUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="inline-block bg-yellow-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-yellow-600 transition duration-300"
-                        >
-                            Abrir Dashboard no Power BI
-                        </a>
-                        <p className="text-xs text-gray-500 mt-4">O Power BI pode levar alguns segundos para carregar os dados mais recentes.</p>
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Painel Executivo</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPIcard title="Total de Demandas" value={kpis.totalDemandas} />
+                        <KPIcard title="Missões Enviadas" value={kpis.missoesEnviadas} />
+                        <KPIcard title="Missões Concluídas (24h)" value={kpis.missoesConcluidas24h} />
+                        <KPIcard title="Taxa de Conversão" value={kpis.taxaConversao} />
+                        <KPIcard title="Tempo Médio Retorno (h)" value={kpis.tempoMedioHoras} />
                     </div>
-                </Fragment>
+                     <div className="mt-8 bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-xl font-semibold mb-4">Status das Missões</h3>
+                        <div className="flex space-x-4">
+                           {Object.entries(statusCounts).map(([status, count]) => (
+                             <div key={status} className="text-center p-4 bg-gray-50 rounded-lg flex-1">
+                                <p className="text-sm text-gray-500">{status}</p>
+                                <p className="text-2xl font-bold">{count}</p>
+                             </div>
+                           ))}
+                        </div>
+                    </div>
+                </div>
             );
-        }
+        };
+        
+        const KPIcard = ({title, value}) => (
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+          </div>
+        );
 
-        function DemandasLocacao({ onAddDemanda }) {
-            const [demanda, setDemanda] = useState({
-                consultorLocacao: '', clienteInteressado: '', contato: '', tipoImovel: '', regiaoDesejada: '',
-                faixaAluguel: '8000', caracteristicasDesejadas: '', prazoNecessidade: '', observacoes: '',
+        const NovaDemanda = ({ onDemandaCriada }) => {
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [formData, setFormData] = useState({
+                consultorLocacao: 'Matheus',
+                clienteInteressado: '',
+                contato: '',
+                tipoImovel: 'Apartamento',
+                regiaoDesejada: '',
+                faixaAluguel: 'De 8mil a 10mil',
+                caracteristicasDesejadas: '',
+                prazoNecessidade: 'Urgente',
+                observacoes: ''
             });
 
             const handleChange = (e) => {
                 const { name, value } = e.target;
-                setDemanda(prev => ({ ...prev, [name]: value }));
+                setFormData(prev => ({ ...prev, [name]: value }));
             };
 
-            const handleSubmit = (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
-                if (parseFloat(demanda.faixaAluguel.replace(/[^0-9]/g, '')) < 8000) {
-                     alert("Apenas demandas com aluguel acima de R$8.000,00 podem ser enviadas para captação.");
-                     return;
+                setIsSubmitting(true);
+                try {
+                    const response = await fetch(`${API_URL}/api/demandas`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData),
+                    });
+                    if (!response.ok) {
+                        throw new Error('Falha ao criar a demanda.');
+                    }
+                    alert('Demanda enviada para captação com sucesso!');
+                    setFormData({ /* Reset form */ });
+                    if(onDemandaCriada) onDemandaCriada();
+                } catch (error) {
+                    console.error("Erro ao submeter:", error);
+                    alert('Erro ao criar demanda. Tente novamente.');
+                } finally {
+                    setIsSubmitting(false);
                 }
-                onAddDemanda(demanda);
-                setDemanda({
-                    consultorLocacao: '', clienteInteressado: '', contato: '', tipoImovel: '', regiaoDesejada: '',
-                    faixaAluguel: '8000', caracteristicasDesejadas: '', prazoNecessidade: '', observacoes: '',
-                });
             };
 
+            const inputFields = [
+                { name: 'clienteInteressado', label: 'Cliente Interessado', icon: User, required: true },
+                { name: 'contato', label: 'Contato (Telefone/Email)', icon: Phone, required: true },
+                { name: 'regiaoDesejada', label: 'Região / Bairro Desejado', icon: MapPin, required: true },
+            ];
+
+            const selectFields = {
+                consultorLocacao: ["Israel", "Matheus", "Bruna K", "Kerolin", "Stephanie"],
+                tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
+                faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
+                prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
+            };
+            
             return (
-                <Fragment>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Nova Demanda de Locação</h2>
-                    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md space-y-6">
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Nova Demanda de Locação</h2>
+                    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <InputField name="consultorLocacao" label="Consultor de Locação" type="select" options={listas.consultores} value={demanda.consultorLocacao} onChange={handleChange} required />
-                            <InputField name="clienteInteressado" label="Cliente Interessado" value={demanda.clienteInteressado} onChange={handleChange} required />
-                            <InputField name="contato" label="Telefone / Contato" value={demanda.contato} onChange={handleChange} required />
-                            <InputField name="tipoImovel" label="Tipo de Imóvel" type="select" options={listas.tiposImovel} value={demanda.tipoImovel} onChange={handleChange} required />
-                            <InputField name="regiaoDesejada" label="Região / Bairro Desejado" type="select" options={listas.bairros} value={demanda.regiaoDesejada} onChange={handleChange} required />
-                            <InputField name="faixaAluguel" label="Faixa de Aluguel (R$)" type="number" min="8000" value={demanda.faixaAluguel} onChange={handleChange} required />
+                            <FormSelect name="consultorLocacao" label="Consultor de Locação" icon={Briefcase} options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
+                            {inputFields.map(field => <FormInput key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />)}
+                            <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon={Building} options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
+                            <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon={Star} options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
+                            <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon={Calendar} options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
                         </div>
-                        <InputField name="caracteristicasDesejadas" label="Características Desejadas" type="textarea" value={demanda.caracteristicasDesejadas} onChange={handleChange} />
-                        <InputField name="prazoNecessidade" label="Prazo de Necessidade" type="select" options={listas.prazos} value={demanda.prazoNecessidade} onChange={handleChange} />
-                        <InputField name="observacoes" label="Observações" type="textarea" value={demanda.observacoes} onChange={handleChange} />
-                        <div className="flex justify-end">
-                            <button type="submit" className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300">
-                                Enviar para Captação (Roleta)
-                            </button>
+
+                        <FormTextarea name="caracteristicasDesejadas" label="Características Desejadas" value={formData.caracteristicasDesejadas} onChange={handleChange} placeholder="Ex: 3 suítes, sacada com churrasqueira, mobiliado..." />
+                        <FormTextarea name="observacoes" label="Observações" value={formData.observacoes} onChange={handleChange} placeholder="Informações adicionais relevantes..." />
+
+                        <div className="text-right">
+                           <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
+                             {isSubmitting ? <Clock className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" /> : <FilePlus className="-ml-1 mr-2 h-5 w-5" />}
+                             {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
+                           </button>
                         </div>
                     </form>
-                </Fragment>
+                </div>
             );
-        }
+        };
 
-        const InputField = ({ name, label, type = 'text', options = [], ...props }) => (
+        const FormInput = ({ name, label, icon: Icon, value, onChange, required=false }) => (
             <div>
                 <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                {type === 'select' ? (
-                    <select id={name} name={name} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" {...props}>
-                        <option value="">Selecione...</option>
-                        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                ) : type === 'textarea' ? (
-                    <textarea id={name} name={name} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" {...props}></textarea>
-                ) : (
-                    <input type={type} id={name} name={name} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" {...props} />
-                )}
+                <div className="relative rounded-md shadow-sm">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <Icon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input type="text" name={name} id={name} required={required} value={value} onChange={onChange} className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5"/>
+                </div>
             </div>
         );
 
-
-        function MissoesCaptacao({ missoes, onUpdateStatus }) {
-            const columns = listas.statusMissao;
-
-            const handleDrop = (e, targetStatus) => {
-                e.preventDefault();
-                const missaoId = e.dataTransfer.getData("missaoId");
-                onUpdateStatus(missaoId, targetStatus);
+        const FormSelect = ({ name, label, icon: Icon, options, value, onChange }) => (
+            <div>
+                <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <div className="relative">
+                     <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                        <Icon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <select id={name} name={name} value={value} onChange={onChange} className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2.5 pl-10 pr-8 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                </div>
+            </div>
+        );
+        
+        const FormTextarea = ({ name, label, value, onChange, placeholder }) => (
+            <div>
+                <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <textarea id={name} name={name} value={value} onChange={onChange} rows={3} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md" placeholder={placeholder}></textarea>
+            </div>
+        );
+        
+        const MissoesCaptacao = ({ missoes, onUpdateStatus }) => {
+            const columns = ['Em busca', 'Encontrado', 'Locado', 'Sem opção'];
+            
+            const handleDragStart = (e, missaoId) => {
+                e.dataTransfer.setData("missaoId", missaoId);
             };
 
-            const handleDragOver = (e) => { e.preventDefault(); };
-            const handleDragStart = (e, missaoId) => { e.dataTransfer.setData("missaoId", missaoId); };
+            const handleDrop = (e, newStatus) => {
+                const missaoId = parseInt(e.dataTransfer.getData("missaoId"), 10);
+                onUpdateStatus(missaoId, newStatus);
+            };
 
+            const handleDragOver = (e) => {
+                e.preventDefault();
+            };
+
+            const getSLAColor = (dataMissao) => {
+                const now = new Date();
+                const start = new Date(dataMissao);
+                const diffHours = (now - start) / (1000 * 60 * 60);
+                if (diffHours >= 48) return 'bg-red-500';
+                if (diffHours >= 24) return 'bg-yellow-500';
+                return 'bg-green-500';
+            };
+            
             return (
-                <Fragment>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Missões de Captação (Kanban)</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Missões de Captação</h2>
+                    <div className="flex space-x-4 overflow-x-auto pb-4">
                         {columns.map(status => (
-                            <div key={status} onDrop={(e) => handleDrop(e, status)} onDragOver={handleDragOver} className="bg-gray-200 p-4 rounded-lg kanban-column">
-                                <h3 className="font-bold text-lg mb-4 text-center text-gray-700">{status} ({missoes.filter(m => m.status === status).length})</h3>
-                                <div className="space-y-4">
+                            <div key={status} 
+                                className="kanban-column bg-gray-100 rounded-lg p-3 flex-shrink-0"
+                                onDrop={(e) => handleDrop(e, status)}
+                                onDragOver={handleDragOver}
+                            >
+                                <h3 className="font-semibold text-lg mb-4 px-2">{status} ({missoes.filter(m => m.status === status).length})</h3>
+                                <div className="space-y-3">
                                     {missoes.filter(m => m.status === status).map(missao => (
-                                        <MissaoCard key={missao.id} missao={missao} onDragStart={handleDragStart} />
+                                        <div key={missao.id} 
+                                             draggable 
+                                             onDragStart={(e) => handleDragStart(e, missao.id)}
+                                             className="bg-white p-4 rounded-md shadow-sm cursor-grab active:cursor-grabbing"
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <p className="font-semibold text-gray-800">{missao.codigo_demanda}</p>
+                                                <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{missao.captador_responsavel}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-600 mt-2">{missao.descricao_busca}</p>
+                                            <p className="text-xs text-gray-500 mt-1">Bairro: {missao.regiao_bairro}</p>
+                                            {missao.status === 'Em busca' && (
+                                                <div className="mt-3">
+                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                        <div className={`h-1.5 rounded-full ${getSLAColor(missao.data_missao)}`} style={{width: '100%'}}></div>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-1">SLA 48h</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             </div>
                         ))}
                     </div>
-                </Fragment>
-            );
-        }
-
-        function MissaoCard({ missao, onDragStart }) {
-            const dataMissao = new Date(missao.dataMissao);
-            const prazo = new Date(dataMissao.getTime() + 48 * 60 * 60 * 1000);
-            const agora = new Date();
-            const horasRestantes = (prazo - agora) / (1000 * 60 * 60);
-
-            let prazoColor = 'text-green-600';
-            if (horasRestantes <= 24) prazoColor = 'text-yellow-600';
-            if (horasRestantes <= 12) prazoColor = 'text-red-600';
-            if (horasRestantes <= 0) prazoColor = 'text-red-800 font-bold';
-            
-            return (
-                <div draggable onDragStart={(e) => onDragStart(e, missao.id)} className="bg-white p-4 rounded-lg shadow-md cursor-grab active:cursor-grabbing">
-                    <div className="flex justify-between items-start">
-                        <span className="font-bold text-blue-700">{missao.codigoDemanda}</span>
-                        <span className="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-1 rounded-full">{missao.captadorResponsavel}</span>
-                    </div>
-                    <p className="text-sm text-gray-700 mt-2">{missao.regiaoBairro}: {missao.descricaoBusca}</p>
-                    <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
-                        <p>Consultor: {missao.consultorSolicitante}</p>
-                        <p className={`mt-1 font-medium ${prazoColor}`}>
-                            Prazo: {horasRestantes > 0 ? `${Math.floor(horasRestantes)}h restantes` : 'Expirado'}
-                        </p>
-                    </div>
                 </div>
             );
-        }
-
-        function RankingCaptadores({ missoes }) {
-             const captadorStats = listas.captadores.map(captador => {
-                const missoesDoCaptador = missoes.filter(m => m.captadorResponsavel === captador);
-                const totalMissoes = missoesDoCaptador.length;
-                const encontrados = missoesDoCaptador.filter(m => m.status === 'Encontrado' || m.status === 'Locado').length;
-                const locados = missoesDoCaptador.filter(m => m.status === 'Locado').length;
-                const taxaConversao = totalMissoes > 0 ? (locados / totalMissoes * 100) : 0;
+        };
+        
+        const RankingCaptadores = ({ missoes }) => {
+            const rankingData = useMemo(() => {
+                const captadores = [...new Set(missoes.map(m => m.captador_responsavel))];
                 
-                const tempos = missoesDoCaptador
-                    .filter(m => m.dataMissao && m.dataRetorno)
-                    .map(m => (new Date(m.dataRetorno) - new Date(m.dataMissao)) / (1000*60*60));
-                
-                const tempoMedio = tempos.length > 0 ? (tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
+                return captadores.map(captador => {
+                    const missoesCaptador = missoes.filter(m => m.captador_responsavel === captador);
+                    const totalMissoes = missoesCaptador.length;
+                    const encontrados = missoesCaptador.filter(m => m.status === 'Encontrado' || m.status === 'Locado').length;
+                    const locados = missoesCaptador.filter(m => m.status === 'Locado').length;
+                    const taxaConversao = totalMissoes > 0 ? ((locados / totalMissoes) * 100) : 0;
+                    
+                    const tempos = missoesCaptador
+                        .filter(m => m.data_retorno)
+                        .map(m => new Date(m.data_retorno).getTime() - new Date(m.data_missao).getTime());
+                    const tempoMedioMs = tempos.length > 0 ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
+                    const tempoMedioHoras = tempoMedioMs / (1000 * 60 * 60);
 
-                return {
-                    nome: captador,
-                    totalMissoes,
-                    encontrados,
-                    locados,
-                    taxaConversao: taxaConversao.toFixed(1),
-                    tempoMedio: tempoMedio.toFixed(1)
-                };
-            }).sort((a,b) => b.locados - a.locados || a.tempoMedio - b.tempoMedio);
+                    return {
+                        nome: captador,
+                        totalMissoes,
+                        encontrados,
+                        locados,
+                        taxaConversao: taxaConversao.toFixed(1),
+                        tempoMedioHoras: tempoMedioHoras.toFixed(1)
+                    };
+                }).sort((a,b) => b.locados - a.locados || a.tempoMedioHoras - b.tempoMedioHoras);
+            }, [missoes]);
 
             return (
-                 <Fragment>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">Ranking de Captadores</h2>
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Ranking de Captadores</h2>
                     <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                        <table className="min-w-full leading-normal">
-                            <thead>
-                                <tr className="bg-gray-200 text-left text-gray-600 uppercase text-sm">
-                                    <th className="px-5 py-3">Pos.</th>
-                                    <th className="px-5 py-3">Captador</th>
-                                    <th className="px-5 py-3">Total Missões</th>
-                                    <th className="px-5 py-3">Encontrados</th>
-                                    <th className="px-5 py-3">Locados</th>
-                                    <th className="px-5 py-3">Taxa Conversão (%)</th>
-                                    <th className="px-5 py-3">Tempo Médio (h)</th>
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Captador</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Missões</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encontrados</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locados</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversão (%)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo Médio (h)</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {captadorStats.map((stats, index) => (
-                                    <tr key={stats.nome} className="border-b border-gray-200 hover:bg-gray-100">
-                                        <td className="px-5 py-4 text-lg font-bold">{index + 1}</td>
-                                        <td className="px-5 py-4 font-medium">{stats.nome}</td>
-                                        <td className="px-5 py-4">{stats.totalMissoes}</td>
-                                        <td className="px-5 py-4">{stats.encontrados}</td>
-                                        <td className="px-5 py-4 text-green-600 font-bold">{stats.locados}</td>
-                                        <td className="px-5 py-4">{stats.taxaConversao}%</td>
-                                        <td className="px-5 py-4">{stats.tempoMedio}h</td>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {rankingData.map(captador => (
+                                    <tr key={captador.nome}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{captador.nome}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.totalMissoes}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.encontrados}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.locados}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.taxaConversao}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.tempoMedioHoras}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </Fragment>
+                </div>
             );
-        }
-
-        const root = createRoot(document.getElementById('root'));
+        };
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+
     </script>
 </body>
 </html>
