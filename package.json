@@ -4,7 +4,7 @@
   "description": "API para o sistema de gestão de captação.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "ls -la && node server.js"
   },
   "author": "",
   "license": "ISC",
