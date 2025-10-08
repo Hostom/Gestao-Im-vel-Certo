@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide-react@0.292.0/dist/lucide-react.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .kanban-column { min-width: 300px; }
@@ -20,16 +19,28 @@
 
     <script type="text/babel">
         // --- CONFIGURAÇÃO DA API ---
-        const API_URL = 'https://gestao-im-vel-certo-production.up.railway.app/'; // Ex: https://meu-backend-1234.up.railway.app
+        const API_URL = 'https://gestao-im-vel-certo-production.up.railway.app'; // Ex: https://meu-backend-1234.up.railway.app
         // -------------------------
 
         const { useState, useEffect, useCallback, useMemo } = React;
-        const { Home, FilePlus, Columns, Trophy, BarChart2, Clock, User, Phone, HomeIcon, MapPin, Search, Star, Building, Briefcase, Calendar } = lucide-react;
 
-        // --- COMPONENTES DA UI ---
-        const Icon = ({ name, ...props }) => {
-            const LucideIcon = lucide[name];
-            return LucideIcon ? <LucideIcon {...props} /> : null;
+        // Componente de ícone simples usando emojis
+        const Icon = ({ name }) => {
+            const icons = {
+                'BarChart2': '📊',
+                'FilePlus': '📄',
+                'Columns': '📋',
+                'Trophy': '🏆',
+                'Clock': '⏰',
+                'User': '👤',
+                'Phone': '📞',
+                'MapPin': '📍',
+                'Star': '⭐',
+                'Building': '🏢',
+                'Briefcase': '💼',
+                'Calendar': '📅'
+            };
+            return <span className="mr-2">{icons[name] || '•'}</span>;
         };
 
         const App = () => {
@@ -96,7 +107,7 @@
             };
             
             const renderView = () => {
-                if (loading) return <div className="flex justify-center items-center h-screen"><Clock className="animate-spin mr-2" />Carregando dados...</div>;
+                if (loading) return <div className="flex justify-center items-center h-screen"><Icon name="Clock" />Carregando dados...</div>;
                 if (error) return <div className="flex justify-center items-center h-screen text-red-500 font-semibold p-4 bg-red-100 rounded-lg">{error}</div>;
 
                 switch(view) {
@@ -116,10 +127,10 @@
                             <p className="text-sm text-gray-500">Gestão de Captação</p>
                         </div>
                         <nav className="flex-1 p-2 space-y-2">
-                           <NavItem icon={BarChart2} text="Painel Executivo" active={view === 'painel'} onClick={() => setView('painel')} />
-                           <NavItem icon={FilePlus} text="Nova Demanda" active={view === 'nova'} onClick={() => setView('nova')} />
-                           <NavItem icon={Columns} text="Missões de Captação" active={view === 'missoes'} onClick={() => setView('missoes')} />
-                           <NavItem icon={Trophy} text="Ranking Captadores" active={view === 'ranking'} onClick={() => setView('ranking')} />
+                           <NavItem icon="BarChart2" text="Painel Executivo" active={view === 'painel'} onClick={() => setView('painel')} />
+                           <NavItem icon="FilePlus" text="Nova Demanda" active={view === 'nova'} onClick={() => setView('nova')} />
+                           <NavItem icon="Columns" text="Missões de Captação" active={view === 'missoes'} onClick={() => setView('missoes')} />
+                           <NavItem icon="Trophy" text="Ranking Captadores" active={view === 'ranking'} onClick={() => setView('ranking')} />
                         </nav>
                     </aside>
                     <main className="flex-1 p-6 overflow-auto">
@@ -129,9 +140,9 @@
             );
         };
 
-        const NavItem = ({ icon: Icon, text, active, onClick }) => (
+        const NavItem = ({ icon, text, active, onClick }) => (
             <button onClick={onClick} className={`w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${active ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}>
-                <Icon size={20} className="mr-3" />
+                <Icon name={icon} />
                 {text}
             </button>
         );
@@ -232,7 +243,17 @@
                         throw new Error('Falha ao criar a demanda.');
                     }
                     alert('Demanda enviada para captação com sucesso!');
-                    setFormData({ /* Reset form */ });
+                    setFormData({
+                        consultorLocacao: 'Matheus',
+                        clienteInteressado: '',
+                        contato: '',
+                        tipoImovel: 'Apartamento',
+                        regiaoDesejada: '',
+                        faixaAluguel: 'De 8mil a 10mil',
+                        caracteristicasDesejadas: '',
+                        prazoNecessidade: 'Urgente',
+                        observacoes: ''
+                    });
                     if(onDemandaCriada) onDemandaCriada();
                 } catch (error) {
                     console.error("Erro ao submeter:", error);
@@ -243,9 +264,9 @@
             };
 
             const inputFields = [
-                { name: 'clienteInteressado', label: 'Cliente Interessado', icon: User, required: true },
-                { name: 'contato', label: 'Contato (Telefone/Email)', icon: Phone, required: true },
-                { name: 'regiaoDesejada', label: 'Região / Bairro Desejado', icon: MapPin, required: true },
+                { name: 'clienteInteressado', label: 'Cliente Interessado', icon: 'User', required: true },
+                { name: 'contato', label: 'Contato (Telefone/Email)', icon: 'Phone', required: true },
+                { name: 'regiaoDesejada', label: 'Região / Bairro Desejado', icon: 'MapPin', required: true },
             ];
 
             const selectFields = {
@@ -260,11 +281,11 @@
                     <h2 className="text-3xl font-bold mb-6 text-gray-800">Nova Demanda de Locação</h2>
                     <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormSelect name="consultorLocacao" label="Consultor de Locação" icon={Briefcase} options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
+                            <FormSelect name="consultorLocacao" label="Consultor de Locação" icon="Briefcase" options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
                             {inputFields.map(field => <FormInput key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />)}
-                            <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon={Building} options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
-                            <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon={Star} options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
-                            <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon={Calendar} options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
+                            <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon="Building" options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
+                            <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon="Star" options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
+                            <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon="Calendar" options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
                         </div>
 
                         <FormTextarea name="caracteristicasDesejadas" label="Características Desejadas" value={formData.caracteristicasDesejadas} onChange={handleChange} placeholder="Ex: 3 suítes, sacada com churrasqueira, mobiliado..." />
@@ -272,7 +293,7 @@
 
                         <div className="text-right">
                            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
-                             {isSubmitting ? <Clock className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" /> : <FilePlus className="-ml-1 mr-2 h-5 w-5" />}
+                             {isSubmitting ? <Icon name="Clock" /> : <Icon name="FilePlus" />}
                              {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
                            </button>
                         </div>
@@ -281,24 +302,24 @@
             );
         };
 
-        const FormInput = ({ name, label, icon: Icon, value, onChange, required=false }) => (
+        const FormInput = ({ name, label, icon, value, onChange, required=false }) => (
             <div>
                 <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <div className="relative rounded-md shadow-sm">
                     <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <Icon className="h-5 w-5 text-gray-400" />
+                        <Icon name={icon} />
                     </div>
                     <input type="text" name={name} id={name} required={required} value={value} onChange={onChange} className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5"/>
                 </div>
             </div>
         );
 
-        const FormSelect = ({ name, label, icon: Icon, options, value, onChange }) => (
+        const FormSelect = ({ name, label, icon, options, value, onChange }) => (
             <div>
                 <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <div className="relative">
                      <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <Icon className="h-5 w-5 text-gray-400" />
+                        <Icon name={icon} />
                     </div>
                     <select id={name} name={name} value={value} onChange={onChange} className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2.5 pl-10 pr-8 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -448,4 +469,3 @@
     </script>
 </body>
 </html>
-
