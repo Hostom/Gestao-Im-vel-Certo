@@ -2,10 +2,10 @@
   "name": "imovel-certo-backend",
   "version": "1.0.0",
   "description": "API para o sistema de gestão de captação com autenticação.",
-  "main": "server-auth.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server-auth.js",
-    "dev": "node server-auth.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "author": "",
   "license": "ISC",
