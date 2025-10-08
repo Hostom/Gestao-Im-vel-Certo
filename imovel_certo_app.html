@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão de Captação</title>
+    <title>Sistema de Gestão de Captação - Imóvel Certo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -19,7 +19,7 @@
 
     <script type="text/babel">
         // --- CONFIGURAÇÃO DA API ---
-        const API_URL = 'https://gestao-im-vel-certo-production.up.railway.app'; // Ex: https://meu-backend-1234.up.railway.app
+        const API_URL = 'http://localhost:3001';
         // -------------------------
 
         const { useState, useEffect, useCallback, useMemo } = React;
@@ -38,105 +38,361 @@
                 'Star': '⭐',
                 'Building': '🏢',
                 'Briefcase': '💼',
-                'Calendar': '📅'
+                'Calendar': '📅',
+                'Users': '👥',
+                'Settings': '⚙️',
+                'LogOut': '🚪',
+                'Lock': '🔒',
+                'MessageSquare': '💬',
+                'Plus': '➕',
+                'Eye': '👁️',
+                'Edit': '✏️',
+                'Check': '✅',
+                'X': '❌'
             };
             return <span className="mr-2">{icons[name] || '•'}</span>;
         };
 
-        const App = () => {
-            const [view, setView] = useState('painel'); // painel, nova, missoes, ranking
-            const [missoes, setMissoes] = useState([]);
-            const [demandas, setDemandas] = useState([]);
+        // Utilitário para fazer requisições autenticadas
+        const apiRequest = async (endpoint, options = {}) => {
+            const token = localStorage.getItem('token');
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` }),
+                    ...options.headers,
+                },
+                ...options,
+            };
+
+            const response = await fetch(`${API_URL}${endpoint}`, config);
+            
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.reload();
+                return;
+            }
+
+            return response;
+        };
+
+        // Context para autenticação
+        const AuthContext = React.createContext();
+
+        const AuthProvider = ({ children }) => {
+            const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
 
-            const fetchData = useCallback(async () => {
+            useEffect(() => {
+                const token = localStorage.getItem('token');
+                const userData = localStorage.getItem('user');
+                
+                if (token && userData) {
+                    setUser(JSON.parse(userData));
+                }
+                setLoading(false);
+            }, []);
+
+            const login = async (email, senha) => {
+                const response = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha }),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erro no login');
+                }
+
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setUser(data.user);
+                return data;
+            };
+
+            const logout = () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+            };
+
+            return (
+                <AuthContext.Provider value={{ user, login, logout, loading }}>
+                    {children}
+                </AuthContext.Provider>
+            );
+        };
+
+        const useAuth = () => {
+            const context = React.useContext(AuthContext);
+            if (!context) {
+                throw new Error('useAuth deve ser usado dentro de AuthProvider');
+            }
+            return context;
+        };
+
+        // Componente de Login
+        const LoginForm = () => {
+            const [email, setEmail] = useState('');
+            const [senha, setSenha] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const { login } = useAuth();
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
                 setLoading(true);
-                setError(null);
+                setError('');
+
                 try {
-                    const [missoesRes, demandasRes] = await Promise.all([
-                        fetch(`${API_URL}/api/missoes`),
-                        fetch(`${API_URL}/api/demandas`)
-                    ]);
-                    
-                    if (!missoesRes.ok || !demandasRes.ok) {
-                         throw new Error(`HTTP error! Missoes status: ${missoesRes.status}, Demandas status: ${demandasRes.status}`);
-                    }
-
-                    const missoesData = await missoesRes.json();
-                    const demandasData = await demandasRes.json();
-                    
-                    setMissoes(missoesData);
-                    setDemandas(demandasData);
-
-                } catch (e) {
-                    console.error("Fetch error:", e);
-                    setError("Não foi possível carregar os dados da API. Verifique a URL e se o backend está no ar.");
+                    await login(email, senha);
+                } catch (err) {
+                    setError(err.message);
                 } finally {
                     setLoading(false);
                 }
-            }, []);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-md w-full space-y-8">
+                        <div>
+                            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                                Imóvel Certo
+                            </h2>
+                            <p className="mt-2 text-center text-sm text-gray-600">
+                                Sistema de Gestão de Captação
+                            </p>
+                        </div>
+                        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                            <div className="rounded-md shadow-sm -space-y-px">
+                                <div>
+                                    <label htmlFor="email" className="sr-only">Email</label>
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                        placeholder="Email"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="senha" className="sr-only">Senha</label>
+                                    <input
+                                        id="senha"
+                                        name="senha"
+                                        type="password"
+                                        required
+                                        value={senha}
+                                        onChange={(e) => setSenha(e.target.value)}
+                                        className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                        placeholder="Senha"
+                                    />
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="text-red-600 text-sm text-center">{error}</div>
+                            )}
+
+                            <div>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
+                                >
+                                    <Icon name="Lock" />
+                                    {loading ? 'Entrando...' : 'Entrar'}
+                                </button>
+                            </div>
+
+                            <div className="text-xs text-gray-500 text-center">
+                                <p><strong>Usuários de teste:</strong></p>
+                                <p>Gerente: admin@imovelcerto.com | Senha: 123456</p>
+                                <p>Captador: bruna@imovelcerto.com | Senha: 123456</p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente principal da aplicação
+        const App = () => {
+            const { user, loading } = useAuth();
+            const [view, setView] = useState('painel');
+            const [missoes, setMissoes] = useState([]);
+            const [demandas, setDemandas] = useState([]);
+            const [captadores, setCaptadores] = useState([]);
+            const [dataLoading, setDataLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            const fetchData = useCallback(async () => {
+                if (!user) return;
+                
+                setDataLoading(true);
+                setError(null);
+                try {
+                    const missoesRes = await apiRequest('/api/missoes');
+                    
+                    if (!missoesRes.ok) {
+                        throw new Error(`HTTP error! status: ${missoesRes.status}`);
+                    }
+
+                    const missoesData = await missoesRes.json();
+                    setMissoes(missoesData);
+
+                    // Apenas gerentes podem ver demandas e captadores
+                    if (user.tipo === 'gerente') {
+                        const [demandasRes, captadoresRes] = await Promise.all([
+                            apiRequest('/api/demandas'),
+                            apiRequest('/api/captadores')
+                        ]);
+                        
+                        if (demandasRes.ok) {
+                            const demandasData = await demandasRes.json();
+                            setDemandas(demandasData);
+                        }
+                        
+                        if (captadoresRes.ok) {
+                            const captadoresData = await captadoresRes.json();
+                            setCaptadores(captadoresData);
+                        }
+                    }
+
+                } catch (e) {
+                    console.error("Fetch error:", e);
+                    setError("Não foi possível carregar os dados da API.");
+                } finally {
+                    setDataLoading(false);
+                }
+            }, [user]);
 
             useEffect(() => {
                 fetchData();
             }, [fetchData]);
 
+            if (loading) {
+                return <div className="flex justify-center items-center h-screen">Carregando...</div>;
+            }
+
+            if (!user) {
+                return <LoginForm />;
+            }
+
             const handleUpdateStatus = async (missaoId, newStatus) => {
                 const originalMissoes = [...missoes];
-                // Optimistic update
                 const updatedMissoes = missoes.map(m => m.id === missaoId ? { ...m, status: newStatus } : m);
                 setMissoes(updatedMissoes);
 
                 try {
-                    const response = await fetch(`${API_URL}/api/missoes/${missaoId}/status`, {
+                    const response = await apiRequest(`/api/missoes/${missaoId}/status`, {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status: newStatus }),
                     });
+                    
                     if (!response.ok) {
                         throw new Error('Falha ao atualizar o status.');
                     }
-                    // Opcional: Recarregar dados para garantir consistência
-                    // fetchData(); 
                 } catch (error) {
                     console.error("Erro ao atualizar status:", error);
-                    // Rollback em caso de erro
                     setMissoes(originalMissoes);
                     alert("Não foi possível atualizar o status. Tente novamente.");
                 }
             };
-            
+
             const renderView = () => {
-                if (loading) return <div className="flex justify-center items-center h-screen"><Icon name="Clock" />Carregando dados...</div>;
+                if (dataLoading) return <div className="flex justify-center items-center h-screen"><Icon name="Clock" />Carregando dados...</div>;
                 if (error) return <div className="flex justify-center items-center h-screen text-red-500 font-semibold p-4 bg-red-100 rounded-lg">{error}</div>;
 
                 switch(view) {
-                    case 'painel': return <PainelExecutivo missoes={missoes} demandas={demandas} />;
-                    case 'nova': return <NovaDemanda onDemandaCriada={fetchData} />;
-                    case 'missoes': return <MissoesCaptacao missoes={missoes} onUpdateStatus={handleUpdateStatus} />;
-                    case 'ranking': return <RankingCaptadores missoes={missoes} />;
-                    default: return <PainelExecutivo missoes={missoes} demandas={demandas} />;
+                    case 'painel': 
+                        return user.tipo === 'gerente' 
+                            ? <PainelExecutivo missoes={missoes} demandas={demandas} />
+                            : <PainelCaptador missoes={missoes} user={user} />;
+                    case 'nova': 
+                        return user.tipo === 'gerente' 
+                            ? <NovaDemanda onDemandaCriada={fetchData} />
+                            : <div className="text-center text-gray-500">Acesso negado</div>;
+                    case 'missoes': 
+                        return <MissoesCaptacao missoes={missoes} onUpdateStatus={handleUpdateStatus} user={user} />;
+                    case 'captadores': 
+                        return user.tipo === 'gerente' 
+                            ? <GerenciarCaptadores captadores={captadores} onUpdate={fetchData} />
+                            : <div className="text-center text-gray-500">Acesso negado</div>;
+                    case 'relatorios': 
+                        return user.tipo === 'gerente' 
+                            ? <RelatoriosPerformance />
+                            : <div className="text-center text-gray-500">Acesso negado</div>;
+                    default: 
+                        return user.tipo === 'gerente' 
+                            ? <PainelExecutivo missoes={missoes} demandas={demandas} />
+                            : <PainelCaptador missoes={missoes} user={user} />;
                 }
             };
 
             return (
                 <div className="flex h-screen bg-gray-50">
-                    <aside className="w-64 bg-white shadow-md flex flex-col">
-                        <div className="p-4 border-b">
-                            <h1 className="text-xl font-bold text-gray-800">Imóvel Certo</h1>
-                            <p className="text-sm text-gray-500">Gestão de Captação</p>
-                        </div>
-                        <nav className="flex-1 p-2 space-y-2">
-                           <NavItem icon="BarChart2" text="Painel Executivo" active={view === 'painel'} onClick={() => setView('painel')} />
-                           <NavItem icon="FilePlus" text="Nova Demanda" active={view === 'nova'} onClick={() => setView('nova')} />
-                           <NavItem icon="Columns" text="Missões de Captação" active={view === 'missoes'} onClick={() => setView('missoes')} />
-                           <NavItem icon="Trophy" text="Ranking Captadores" active={view === 'ranking'} onClick={() => setView('ranking')} />
-                        </nav>
-                    </aside>
+                    <Sidebar user={user} view={view} setView={setView} />
                     <main className="flex-1 p-6 overflow-auto">
                         {renderView()}
                     </main>
                 </div>
+            );
+        };
+
+        // Componente da barra lateral
+        const Sidebar = ({ user, view, setView }) => {
+            const { logout } = useAuth();
+
+            const menuItems = user.tipo === 'gerente' ? [
+                { id: 'painel', icon: 'BarChart2', text: 'Painel Executivo' },
+                { id: 'nova', icon: 'FilePlus', text: 'Nova Demanda' },
+                { id: 'missoes', icon: 'Columns', text: 'Missões de Captação' },
+                { id: 'captadores', icon: 'Users', text: 'Gerenciar Captadores' },
+                { id: 'relatorios', icon: 'Trophy', text: 'Relatórios' },
+            ] : [
+                { id: 'painel', icon: 'BarChart2', text: 'Meu Painel' },
+                { id: 'missoes', icon: 'Columns', text: 'Minhas Missões' },
+            ];
+
+            return (
+                <aside className="w-64 bg-white shadow-md flex flex-col">
+                    <div className="p-4 border-b">
+                        <h1 className="text-xl font-bold text-gray-800">Imóvel Certo</h1>
+                        <p className="text-sm text-gray-500">Gestão de Captação</p>
+                        <div className="mt-2 text-xs text-gray-600">
+                            <p><strong>{user.nome}</strong></p>
+                            <p className="capitalize">{user.tipo}</p>
+                        </div>
+                    </div>
+                    <nav className="flex-1 p-2 space-y-2">
+                        {menuItems.map(item => (
+                            <NavItem 
+                                key={item.id}
+                                icon={item.icon} 
+                                text={item.text} 
+                                active={view === item.id} 
+                                onClick={() => setView(item.id)} 
+                            />
+                        ))}
+                    </nav>
+                    <div className="p-2 border-t">
+                        <button 
+                            onClick={logout}
+                            className="w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                        >
+                            <Icon name="LogOut" />
+                            Sair
+                        </button>
+                    </div>
+                </aside>
             );
         };
 
@@ -146,8 +402,8 @@
                 {text}
             </button>
         );
-        
-        // --- PÁGINAS ---
+
+        // Painel Executivo (Gerente)
         const PainelExecutivo = ({ missoes, demandas }) => {
             const kpis = useMemo(() => {
                 const missoesEnviadas = missoes.length;
@@ -158,17 +414,12 @@
                 }).length;
                 const locados = missoes.filter(m => m.status === 'Locado').length;
                 const taxaConversao = missoesEnviadas > 0 ? ((locados / missoesEnviadas) * 100).toFixed(1) + '%' : '0%';
-                
-                const tempos = missoes.filter(m => m.data_retorno).map(m => new Date(m.data_retorno).getTime() - new Date(m.data_missao).getTime());
-                const tempoMedioMs = tempos.length > 0 ? tempos.reduce((a,b) => a+b, 0) / tempos.length : 0;
-                const tempoMedioHoras = (tempoMedioMs / (1000 * 60 * 60)).toFixed(1);
 
                 return {
                     totalDemandas: demandas.length,
                     missoesEnviadas,
                     missoesConcluidas24h,
                     taxaConversao,
-                    tempoMedioHoras,
                 };
             }, [missoes, demandas]);
 
@@ -187,30 +438,77 @@
                         <KPIcard title="Missões Enviadas" value={kpis.missoesEnviadas} />
                         <KPIcard title="Missões Concluídas (24h)" value={kpis.missoesConcluidas24h} />
                         <KPIcard title="Taxa de Conversão" value={kpis.taxaConversao} />
-                        <KPIcard title="Tempo Médio Retorno (h)" value={kpis.tempoMedioHoras} />
                     </div>
-                     <div className="mt-8 bg-white p-6 rounded-lg shadow">
+                    <div className="mt-8 bg-white p-6 rounded-lg shadow">
                         <h3 className="text-xl font-semibold mb-4">Status das Missões</h3>
                         <div className="flex space-x-4">
-                           {Object.entries(statusCounts).map(([status, count]) => (
-                             <div key={status} className="text-center p-4 bg-gray-50 rounded-lg flex-1">
-                                <p className="text-sm text-gray-500">{status}</p>
-                                <p className="text-2xl font-bold">{count}</p>
-                             </div>
-                           ))}
+                            {Object.entries(statusCounts).map(([status, count]) => (
+                                <div key={status} className="text-center p-4 bg-gray-50 rounded-lg flex-1">
+                                    <p className="text-sm text-gray-500">{status}</p>
+                                    <p className="text-2xl font-bold">{count}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             );
         };
-        
-        const KPIcard = ({title, value}) => (
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-          </div>
+
+        // Painel do Captador
+        const PainelCaptador = ({ missoes, user }) => {
+            const minhasMissoes = missoes.filter(m => m.captador_responsavel === user.nome);
+            
+            const kpis = useMemo(() => {
+                const totalMissoes = minhasMissoes.length;
+                const encontrados = minhasMissoes.filter(m => m.status === 'Encontrado' || m.status === 'Locado').length;
+                const locados = minhasMissoes.filter(m => m.status === 'Locado').length;
+                const emAndamento = minhasMissoes.filter(m => m.status === 'Em busca').length;
+
+                return { totalMissoes, encontrados, locados, emAndamento };
+            }, [minhasMissoes]);
+
+            return (
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Meu Painel</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPIcard title="Total de Missões" value={kpis.totalMissoes} />
+                        <KPIcard title="Em Andamento" value={kpis.emAndamento} />
+                        <KPIcard title="Encontrados" value={kpis.encontrados} />
+                        <KPIcard title="Locados" value={kpis.locados} />
+                    </div>
+                    
+                    <div className="mt-8 bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-xl font-semibold mb-4">Minhas Missões Recentes</h3>
+                        <div className="space-y-3">
+                            {minhasMissoes.slice(0, 5).map(missao => (
+                                <div key={missao.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p className="font-semibold">{missao.codigo_demanda}</p>
+                                        <p className="text-sm text-gray-600">{missao.descricao_busca}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                        missao.status === 'Locado' ? 'bg-green-100 text-green-800' :
+                                        missao.status === 'Encontrado' ? 'bg-blue-100 text-blue-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                        {missao.status}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const KPIcard = ({ title, value }) => (
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+            </div>
         );
 
+        // Nova Demanda (apenas gerentes)
         const NovaDemanda = ({ onDemandaCriada }) => {
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [formData, setFormData] = useState({
@@ -234,14 +532,15 @@
                 e.preventDefault();
                 setIsSubmitting(true);
                 try {
-                    const response = await fetch(`${API_URL}/api/demandas`, {
+                    const response = await apiRequest('/api/demandas', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(formData),
                     });
+                    
                     if (!response.ok) {
                         throw new Error('Falha ao criar a demanda.');
                     }
+                    
                     alert('Demanda enviada para captação com sucesso!');
                     setFormData({
                         consultorLocacao: 'Matheus',
@@ -254,7 +553,7 @@
                         prazoNecessidade: 'Urgente',
                         observacoes: ''
                     });
-                    if(onDemandaCriada) onDemandaCriada();
+                    if (onDemandaCriada) onDemandaCriada();
                 } catch (error) {
                     console.error("Erro ao submeter:", error);
                     alert('Erro ao criar demanda. Tente novamente.');
@@ -275,7 +574,7 @@
                 faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
                 prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
             };
-            
+
             return (
                 <div className="max-w-4xl mx-auto">
                     <h2 className="text-3xl font-bold mb-6 text-gray-800">Nova Demanda de Locação</h2>
@@ -292,24 +591,24 @@
                         <FormTextarea name="observacoes" label="Observações" value={formData.observacoes} onChange={handleChange} placeholder="Informações adicionais relevantes..." />
 
                         <div className="text-right">
-                           <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
-                             {isSubmitting ? <Icon name="Clock" /> : <Icon name="FilePlus" />}
-                             {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
-                           </button>
+                            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
+                                {isSubmitting ? <Icon name="Clock" /> : <Icon name="FilePlus" />}
+                                {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
+                            </button>
                         </div>
                     </form>
                 </div>
             );
         };
 
-        const FormInput = ({ name, label, icon, value, onChange, required=false }) => (
+        const FormInput = ({ name, label, icon, value, onChange, required = false }) => (
             <div>
                 <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <div className="relative rounded-md shadow-sm">
                     <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
                         <Icon name={icon} />
                     </div>
-                    <input type="text" name={name} id={name} required={required} value={value} onChange={onChange} className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5"/>
+                    <input type="text" name={name} id={name} required={required} value={value} onChange={onChange} className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5" />
                 </div>
             </div>
         );
@@ -318,7 +617,7 @@
             <div>
                 <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <div className="relative">
-                     <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
                         <Icon name={icon} />
                     </div>
                     <select id={name} name={name} value={value} onChange={onChange} className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2.5 pl-10 pr-8 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
@@ -327,17 +626,22 @@
                 </div>
             </div>
         );
-        
+
         const FormTextarea = ({ name, label, value, onChange, placeholder }) => (
             <div>
                 <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <textarea id={name} name={name} value={value} onChange={onChange} rows={3} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md" placeholder={placeholder}></textarea>
             </div>
         );
-        
-        const MissoesCaptacao = ({ missoes, onUpdateStatus }) => {
+
+        // Missões de Captação
+        const MissoesCaptacao = ({ missoes, onUpdateStatus, user }) => {
+            const [selectedMissao, setSelectedMissao] = useState(null);
+            const [interacoes, setInteracoes] = useState([]);
+            const [novaInteracao, setNovaInteracao] = useState('');
+
             const columns = ['Em busca', 'Encontrado', 'Locado', 'Sem opção'];
-            
+
             const handleDragStart = (e, missaoId) => {
                 e.dataTransfer.setData("missaoId", missaoId);
             };
@@ -359,24 +663,69 @@
                 if (diffHours >= 24) return 'bg-yellow-500';
                 return 'bg-green-500';
             };
-            
+
+            const loadInteracoes = async (missaoId) => {
+                try {
+                    const response = await apiRequest(`/api/missoes/${missaoId}/interacoes`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setInteracoes(data);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar interações:', error);
+                }
+            };
+
+            const addInteracao = async () => {
+                if (!novaInteracao.trim() || !selectedMissao) return;
+
+                try {
+                    const response = await apiRequest(`/api/missoes/${selectedMissao.id}/interacoes`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            tipo: 'comentario',
+                            descricao: novaInteracao
+                        }),
+                    });
+
+                    if (response.ok) {
+                        setNovaInteracao('');
+                        loadInteracoes(selectedMissao.id);
+                    }
+                } catch (error) {
+                    console.error('Erro ao adicionar interação:', error);
+                }
+            };
+
+            const openMissaoDetails = (missao) => {
+                setSelectedMissao(missao);
+                loadInteracoes(missao.id);
+            };
+
+            // Filtrar missões se for captador
+            const missoesExibidas = user.tipo === 'captador' 
+                ? missoes.filter(m => m.captador_responsavel === user.nome)
+                : missoes;
+
             return (
-                 <div>
-                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Missões de Captação</h2>
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">
+                        {user.tipo === 'captador' ? 'Minhas Missões' : 'Missões de Captação'}
+                    </h2>
                     <div className="flex space-x-4 overflow-x-auto pb-4">
                         {columns.map(status => (
-                            <div key={status} 
+                            <div key={status}
                                 className="kanban-column bg-gray-100 rounded-lg p-3 flex-shrink-0"
                                 onDrop={(e) => handleDrop(e, status)}
                                 onDragOver={handleDragOver}
                             >
-                                <h3 className="font-semibold text-lg mb-4 px-2">{status} ({missoes.filter(m => m.status === status).length})</h3>
+                                <h3 className="font-semibold text-lg mb-4 px-2">{status} ({missoesExibidas.filter(m => m.status === status).length})</h3>
                                 <div className="space-y-3">
-                                    {missoes.filter(m => m.status === status).map(missao => (
-                                        <div key={missao.id} 
-                                             draggable 
-                                             onDragStart={(e) => handleDragStart(e, missao.id)}
-                                             className="bg-white p-4 rounded-md shadow-sm cursor-grab active:cursor-grabbing"
+                                    {missoesExibidas.filter(m => m.status === status).map(missao => (
+                                        <div key={missao.id}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, missao.id)}
+                                            className="bg-white p-4 rounded-md shadow-sm cursor-grab active:cursor-grabbing"
                                         >
                                             <div className="flex justify-between items-start">
                                                 <p className="font-semibold text-gray-800">{missao.codigo_demanda}</p>
@@ -387,73 +736,207 @@
                                             {missao.status === 'Em busca' && (
                                                 <div className="mt-3">
                                                     <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                                        <div className={`h-1.5 rounded-full ${getSLAColor(missao.data_missao)}`} style={{width: '100%'}}></div>
+                                                        <div className={`h-1.5 rounded-full ${getSLAColor(missao.data_missao)}`} style={{ width: '100%' }}></div>
                                                     </div>
                                                     <p className="text-xs text-gray-500 mt-1">SLA 48h</p>
                                                 </div>
                                             )}
+                                            <button
+                                                onClick={() => openMissaoDetails(missao)}
+                                                className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                <Icon name="Eye" />Ver detalhes
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         ))}
                     </div>
+
+                    {/* Modal de detalhes da missão */}
+                    {selectedMissao && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold">Detalhes da Missão - {selectedMissao.codigo_demanda}</h3>
+                                    <button onClick={() => setSelectedMissao(null)} className="text-gray-500 hover:text-gray-700">
+                                        <Icon name="X" />
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <h4 className="font-semibold mb-2">Interações</h4>
+                                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                                            {interacoes.map(interacao => (
+                                                <div key={interacao.id} className="bg-gray-50 p-3 rounded">
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="font-medium text-sm">{interacao.usuario_nome}</span>
+                                                        <span className="text-xs text-gray-500">
+                                                            {new Date(interacao.data_interacao).toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm mt-1">{interacao.descricao}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <h4 className="font-semibold mb-2">Adicionar Interação</h4>
+                                        <div className="flex space-x-2">
+                                            <input
+                                                type="text"
+                                                value={novaInteracao}
+                                                onChange={(e) => setNovaInteracao(e.target.value)}
+                                                placeholder="Digite sua interação..."
+                                                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                                            />
+                                            <button
+                                                onClick={addInteracao}
+                                                className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+                                            >
+                                                <Icon name="Plus" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
-        
-        const RankingCaptadores = ({ missoes }) => {
-            const rankingData = useMemo(() => {
-                const captadores = [...new Set(missoes.map(m => m.captador_responsavel))];
-                
-                return captadores.map(captador => {
-                    const missoesCaptador = missoes.filter(m => m.captador_responsavel === captador);
-                    const totalMissoes = missoesCaptador.length;
-                    const encontrados = missoesCaptador.filter(m => m.status === 'Encontrado' || m.status === 'Locado').length;
-                    const locados = missoesCaptador.filter(m => m.status === 'Locado').length;
-                    const taxaConversao = totalMissoes > 0 ? ((locados / totalMissoes) * 100) : 0;
-                    
-                    const tempos = missoesCaptador
-                        .filter(m => m.data_retorno)
-                        .map(m => new Date(m.data_retorno).getTime() - new Date(m.data_missao).getTime());
-                    const tempoMedioMs = tempos.length > 0 ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0;
-                    const tempoMedioHoras = tempoMedioMs / (1000 * 60 * 60);
 
-                    return {
-                        nome: captador,
-                        totalMissoes,
-                        encontrados,
-                        locados,
-                        taxaConversao: taxaConversao.toFixed(1),
-                        tempoMedioHoras: tempoMedioHoras.toFixed(1)
-                    };
-                }).sort((a,b) => b.locados - a.locados || a.tempoMedioHoras - b.tempoMedioHoras);
-            }, [missoes]);
+        // Gerenciar Captadores (apenas gerentes)
+        const GerenciarCaptadores = ({ captadores, onUpdate }) => {
+            const [showForm, setShowForm] = useState(false);
+            const [formData, setFormData] = useState({ nome: '', email: '', senha: '' });
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const response = await apiRequest('/api/captadores', {
+                        method: 'POST',
+                        body: JSON.stringify(formData),
+                    });
+
+                    if (response.ok) {
+                        alert('Captador criado com sucesso!');
+                        setFormData({ nome: '', email: '', senha: '' });
+                        setShowForm(false);
+                        onUpdate();
+                    } else {
+                        const error = await response.json();
+                        alert(error.error || 'Erro ao criar captador');
+                    }
+                } catch (error) {
+                    console.error('Erro ao criar captador:', error);
+                    alert('Erro ao criar captador');
+                }
+            };
+
+            const toggleStatus = async (captadorId, ativo) => {
+                try {
+                    const response = await apiRequest(`/api/captadores/${captadorId}/status`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ ativo: !ativo }),
+                    });
+
+                    if (response.ok) {
+                        onUpdate();
+                    }
+                } catch (error) {
+                    console.error('Erro ao alterar status:', error);
+                }
+            };
 
             return (
                 <div>
-                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Ranking de Captadores</h2>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-3xl font-bold text-gray-800">Gerenciar Captadores</h2>
+                        <button
+                            onClick={() => setShowForm(!showForm)}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                        >
+                            <Icon name="Plus" />
+                            Novo Captador
+                        </button>
+                    </div>
+
+                    {showForm && (
+                        <div className="bg-white p-6 rounded-lg shadow mb-6">
+                            <h3 className="text-lg font-semibold mb-4">Novo Captador</h3>
+                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <input
+                                    type="text"
+                                    placeholder="Nome completo"
+                                    value={formData.nome}
+                                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                                    className="border border-gray-300 rounded px-3 py-2"
+                                    required
+                                />
+                                <input
+                                    type="email"
+                                    placeholder="Email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className="border border-gray-300 rounded px-3 py-2"
+                                    required
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Senha"
+                                    value={formData.senha}
+                                    onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                                    className="border border-gray-300 rounded px-3 py-2"
+                                    required
+                                />
+                                <div className="md:col-span-3 flex space-x-2">
+                                    <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                                        Criar
+                                    </button>
+                                    <button type="button" onClick={() => setShowForm(false)} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
                     <div className="bg-white shadow-md rounded-lg overflow-hidden">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Captador</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Missões</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encontrados</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locados</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversão (%)</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo Médio (h)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Criação</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {rankingData.map(captador => (
-                                    <tr key={captador.nome}>
+                                {captadores.map(captador => (
+                                    <tr key={captador.id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{captador.nome}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.totalMissoes}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.encontrados}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.locados}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.taxaConversao}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.tempoMedioHoras}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.email}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${captador.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {captador.ativo ? 'Ativo' : 'Inativo'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(captador.data_criacao).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button
+                                                onClick={() => toggleStatus(captador.id, captador.ativo)}
+                                                className={`${captador.ativo ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                                            >
+                                                {captador.ativo ? 'Inativar' : 'Ativar'}
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -462,9 +945,78 @@
                 </div>
             );
         };
-        
+
+        // Relatórios de Performance (apenas gerentes)
+        const RelatoriosPerformance = () => {
+            const [relatorio, setRelatorio] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const fetchRelatorio = async () => {
+                    try {
+                        const response = await apiRequest('/api/relatorios/performance');
+                        if (response.ok) {
+                            const data = await response.json();
+                            setRelatorio(data);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar relatório:', error);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                fetchRelatorio();
+            }, []);
+
+            if (loading) {
+                return <div className="flex justify-center items-center h-64">Carregando relatório...</div>;
+            }
+
+            return (
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Relatórios de Performance</h2>
+                    <div className="bg-white shadow-md rounded-lg overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Captador</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Missões</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encontrados</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locados</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taxa Conversão (%)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo Médio (h)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {relatorio.map(item => (
+                                    <tr key={item.captador}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.captador}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.total_missoes}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.encontrados}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.locados}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.taxa_conversao}%</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {item.tempo_medio_horas ? parseFloat(item.tempo_medio_horas).toFixed(1) : '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente principal com provider de autenticação
+        const AppWithAuth = () => (
+            <AuthProvider>
+                <App />
+            </AuthProvider>
+        );
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<AppWithAuth />);
 
     </script>
 </body>
