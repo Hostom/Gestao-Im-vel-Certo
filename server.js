@@ -24,14 +24,22 @@ const PORT = process.env.PORT || 3001; // O Railway fornecerá a porta via proce
 app.use(cors()); // Permite que o frontend (em outro domínio) acesse esta API
 app.use(express.json()); // Permite que o servidor entenda JSON no corpo das requisições
 
+// Servir arquivos estáticos (HTML, CSS, JS)
+app.use(express.static(__dirname));
+
 // --- Listas (normalmente viriam do banco, mas aqui para simplificar a lógica da roleta) ---
 const captadores = ["Bruna S", "Michele", "Morgana"];
 
 
 // --- Rotas da API (Endpoints) ---
 
-// Rota de teste para verificar se o servidor está no ar
+// Rota principal para servir o frontend
 app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/imovel_certo_app.html');
+});
+
+// Rota de teste para verificar se a API está funcionando
+app.get('/api/status', (req, res) => {
   res.send('API do Sistema Imóvel Certo está funcionando!');
 });
 
