@@ -162,20 +162,22 @@ async function initializeDb() {
                    ["Gerente Itapema", "pedro@adimimoveis.com.br", senhaHash, "gerente_regional", "Itapema"]);
             
             await client.query(`INSERT INTO usuarios (nome, email, senha, tipo, regiao, regioes_responsavel) VALUES ($1, $2, $3, $4, $5, $6)`, 
-                   ["Lidiane Silva", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"]);
+                   ["Lidiane", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"]);
             
             const captadoresItapema = [
                 ["Jenifer de Souza", "jenifer@adimimoveis.com.br", "Itapema"],
             ];
             
             const captadoresBalnearioCamboriu = [
-                ["Carlos Santos", "carlos@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Ana Costa", "ana@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Michele Oliveira", "michele@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Balneario_Camboriu"]
             ];
 
             const captadoresItajai = [
-                ["Roberto Lima", "roberto@adimimoveis.com.br", "Itajai"],
-                ["Fernanda Oliveira", "fernanda@adimimoveis.com.br", "Itajai"],
+                ["Michele Oliveira", "michele@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Balneario_Camboriu"]
             ];
             
             const todosCaptadores = [...captadoresItapema, ...captadoresBalnearioCamboriu, ...captadoresItajai];
@@ -207,13 +209,13 @@ async function initializeDb() {
             }
 
             const missoes = [
-                [1, "LOC-A1B2", "Bruna Silva", "Israel", "Centro", "Apartamento frente mar, 3 quartos", "Em busca"],
-                [2, "LOC-C3D4", "Michele Santos", "Matheus", "Meia Praia", "3 suítes, 2 vagas, área de lazer", "Encontrado"],
-                [3, "BC-001", "Carlos Santos", "Lidiane", "Centro BC", "Apartamento vista mar, 2 quartos", "Em busca"],
-                [4, "BC-002", "Ana Costa", "Lidiane", "Pioneiros", "Casa 3 quartos com garagem, aceita pets", "Em busca"],
-                [5, "ITJ-001", "Roberto Lima", "Lidiane", "Centro Itajaí", "Apartamento mobiliado 2 quartos", "Encontrado"],
-                [6, "ITJ-002", "Fernanda Oliveira", "Lidiane", "Centro Itajaí", "Sala comercial bem localizada", "Em busca"],
-                [7, "LOC-E5F6", "Morgana Costa", "Bruna K", "Pioneiros", "Cobertura duplex com vista", "Locado"]
+                [1, "LOC-A1B2", "Bruna Spinello", "Israel", "Centro", "Apartamento frente mar, 3 quartos", "Em busca"],
+                [2, "LOC-C3D4", "Michele Oliveira", "Matheus", "Meia Praia", "3 suítes, 2 vagas, área de lazer", "Encontrado"],
+                [3, "BC-001", "Morgana Barreto", "Lidiane", "Centro BC", "Apartamento vista mar, 2 quartos", "Em busca"],
+                [4, "BC-002", "Michele Oliveira", "Lidiane", "Pioneiros", "Casa 3 quartos com garagem, aceita pets", "Em busca"],
+                [5, "ITJ-001", "Michele Oliveira", "Lidiane", "Centro Itajaí", "Apartamento mobiliado 2 quartos", "Encontrado"],
+                [6, "ITJ-002", "Bruna Spinello", "Lidiane", "Centro Itajaí", "Sala comercial bem localizada", "Em busca"],
+                [7, "LOC-E5F6", "Morgana Barreto", "Bruna K", "Pioneiros", "Cobertura duplex com vista", "Locado"]
             ];
 
             for (const missao of missoes) {
@@ -661,3 +663,106 @@ initializeDb().then(() => {
     console.error("Falha ao iniciar o servidor:", err);
     process.exit(1);
 });
+
+
+
+// PUT /api/missoes/:id/status - Atualizar status da missão
+app.put("/api/missoes/:id/status", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+        return res.status(400).json({ error: "O novo status é obrigatório." });
+    }
+
+    try {
+        const client = await pool.connect();
+        const { rows: missaoRows } = await client.query("SELECT demanda_id FROM missoes WHERE id = $1", [id]);
+        if (missaoRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        const demandaId = missaoRows[0].demanda_id;
+
+        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demandaId]);
+        if (demandaRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Demanda associada não encontrada." });
+        }
+        const regiaoDemanda = demandaRows[0].regiao_demanda;
+
+        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para atualizar missões para demandas nesta região." });
+        }
+
+        const { rows } = await client.query(
+            `UPDATE missoes SET status = $1 WHERE id = $2 RETURNING *`,
+            [status, id]
+        );
+        client.release();
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar status da missão:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao atualizar status da missão." });
+    }
+});
+
+// GET /api/missoes/:missao_id/interacoes - Obter interações de uma missão
+app.get("/api/missoes/:missao_id/interacoes", authenticateToken, async (req, res) => {
+    const { missao_id } = req.params;
+
+    if (!missao_id) {
+        return res.status(400).json({ error: "Missão ID é obrigatório." });
+    }
+
+    try {
+        const client = await pool.connect();
+        const { rows } = await client.query("SELECT * FROM interacoes WHERE missao_id = $1 ORDER BY data_interacao DESC", [missao_id]);
+        client.release();
+        res.json(rows);
+    } catch (err) {
+        console.error("Erro ao obter interações da missão:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
+// GET /api/relatorios/performance-captadores/:id - Rota de placeholder
+app.get("/api/relatorios/performance-captadores/:id", authenticateToken, (req, res) => {
+    res.status(200).json({ message: "Rota de performance de captadores em desenvolvimento." });
+});
+
+// GET /api/relatorios/dashboard/:id - Rota de placeholder
+app.get("/api/relatorios/dashboard/:id", authenticateToken, (req, res) => {
+    res.status(200).json({ message: "Rota de dashboard em desenvolvimento." });
+});
+
+// GET /api/demandas/:id - Obter uma demanda específica
+app.get("/api/demandas/:id", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const client = await pool.connect();
+        const { rows } = await client.query("SELECT * FROM demandas WHERE id = $1", [id]);
+        const demanda = rows[0];
+        client.release();
+
+        if (!demanda) {
+            return res.status(404).json({ error: "Demanda não encontrada." });
+        }
+
+        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(demanda.regiao_demanda)) {
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para ver demandas desta região." });
+        }
+
+        res.json(demanda);
+    } catch (err) {
+        console.error("Erro ao obter demanda:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
