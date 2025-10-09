@@ -125,10 +125,10 @@ UPDATE usuarios SET regiao = 'Itapema' WHERE email IN ('bruna@imovelcerto.com', 
 
 -- Captadores de Balneário Camboriú e Itajaí
 INSERT INTO usuarios (nome, email, senha, tipo, regiao) VALUES
-('Carlos Santos', 'carlos@imovelcerto.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Balneario_Camboriu'),
-('Ana Costa', 'ana@imovelcerto.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Balneario_Camboriu'),
-('Roberto Lima', 'roberto@imovelcerto.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Itajai'),
-('Fernanda Oliveira', 'fernanda@imovelcerto.com', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Itajai');
+('Michele Oliveira', 'michele@adimimoveis.com.br', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Balneario_Camboriu'),
+('Morgana Barreto', 'morgana@adimimoveis.com.br', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Balneario_Camboriu'),
+('Bruna Spinello', 'brunaspinello@crimoveis.com.br', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Itajai'),
+('Jenifer de Souza', 'jenifer@adimimoveis.com.br', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'captador', 'Itajai');
 
 -- 11. Inserir dados de exemplo para as novas regiões
 INSERT INTO demandas (codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, regiao_demanda, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes) VALUES
@@ -139,10 +139,10 @@ INSERT INTO demandas (codigo_demanda, consultor_locacao, cliente_interessado, co
 
 -- 12. Inserir missões de exemplo para as novas regiões
 INSERT INTO missoes (codigo_demanda, captador_responsavel, consultor_solicitante, regiao_bairro, descricao_busca, status) VALUES
-('BC-001', 'Carlos Santos', 'Lidiane', 'Centro BC', 'Apartamento vista mar, 2 quartos, até R$ 12mil', 'Em busca'),
-('BC-002', 'Ana Costa', 'Lidiane', 'Pioneiros', 'Casa 3 quartos com garagem, aceita pets', 'Em busca'),
-('ITJ-001', 'Roberto Lima', 'Lidiane', 'Centro Itajaí', 'Apartamento mobiliado 2 quartos', 'Encontrado'),
-('ITJ-002', 'Fernanda Oliveira', 'Lidiane', 'Centro Itajaí', 'Sala comercial bem localizada', 'Em busca');
+('BC-001', 'Morgana Barreto', 'Lidiane', 'Centro BC', 'Apartamento vista mar, 2 quartos, até R$ 12mil', 'Em busca'),
+('BC-002', 'Bruna Spinello', 'Lidiane', 'Pioneiros', 'Casa 3 quartos com garagem, aceita pets', 'Em busca'),
+('ITJ-001', 'Michele Oliveira', 'Lidiane', 'Centro Itajaí', 'Apartamento mobiliado 2 quartos', 'Encontrado'),
+('ITJ-002', 'Bruna Spinello', 'Lidiane', 'Centro Itajaí', 'Sala comercial bem localizada', 'Em busca');
 
 -- 13. Atualizar configurações de gerentes responsáveis
 UPDATE configuracoes_regionais SET gerente_responsavel_id = (

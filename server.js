@@ -129,13 +129,12 @@ async function initializeDb() {
             const inserts = [
                 ["Administrador", "admin@adimimoveis.com.br", senhaHash, "admin", "Geral", null],
                 ["Diretor Geral", "diretor@adimimoveis.com.br", senhaHash, "diretor", "Geral", null],
-                ["Lidiane Silva", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"],
+                ["Lidiane Kolodi", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"],
                 ["Pedro (Gerente Itapema)", "pedro@adimimoveis.com.br", senhaHash, "gerente_regional", "Itapema", "Itapema"],
                 ["Jenifer de Souza", "jenifer@adimimoveis.com.br", senhaHash, "captador", "Itapema", null],
-                ["Carlos Santos", "carlos@adimimoveis.com.br", senhaHash, "captador", "Balneario_Camboriu", null],
-                ["Ana Costa", "ana@adimimoveis.com.br", senhaHash, "captador", "Balneario_Camboriu", null],
-                ["Roberto Lima", "roberto@adimimoveis.com.br", senhaHash, "captador", "Itajai", null],
-                ["Fernanda Oliveira", "fernanda@adimimoveis.com.br", senhaHash, "captador", "Itajai", null]
+                ["Michele Oliveira", "michele@adimimoveis.com.br", senhaHash, "captador", "Balneario_Camboriu", null],
+                ["Morgana Barreto", "morgana@adimimoveis.com.br", senhaHash, "captador", "Balneario_Camboriu", null],
+                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", senhaHash, "captador", "Itajai", null]
             ];
 
             for (const row of inserts) {
