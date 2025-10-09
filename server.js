@@ -80,17 +80,17 @@ db.serialize(() => {
         if (row.count === 0) {
             console.log("Criando usuários padrão...");
             
-            const senhaHash = await bcrypt.hash('Adim2025', 10);
+            const senhaHash = await bcrypt.hash('123456', 10);
             
             // Usuário gerente
             db.run(`INSERT INTO usuarios (nome, email, senha, tipo) VALUES (?, ?, ?, ?)`, 
-                   ['Administrador', 'lidiane@adimimoveis.com.br', senhaHash, 'gerente']);
+                   ['Administrador', 'admin@imovelcerto.com', senhaHash, 'gerente']);
             
             // Usuários captadores
             const captadores = [
-                ['Bruna Spinello', 'brunaspinello@criimoveis.com.br'],
-                ['Michele Oliveira', 'michele@adimimoveis.com.br'],
-                ['Morgana Barreto', 'morgana@adimimoveis.com.br']
+                ['Bruna Silva', 'bruna@imovelcerto.com'],
+                ['Michele Santos', 'michele@imovelcerto.com'],
+                ['Morgana Costa', 'morgana@imovelcerto.com']
             ];
             
             captadores.forEach(captador => {
@@ -126,7 +126,7 @@ db.serialize(() => {
                     }
                     
                     // Inserir missão correspondente
-                    const captadores = ["Bruna Spinello", "Michele Oliveira", "Morgana Barreto"];
+                    const captadores = ["Bruna Silva", "Michele Santos", "Morgana Costa"];
                     const status = ['Em busca', 'Encontrado', 'Locado'];
                     
                     db.run(`INSERT INTO missoes (demanda_id, codigo_demanda, captador_responsavel, consultor_solicitante, regiao_bairro, descricao_busca, status) 
@@ -231,7 +231,7 @@ app.post('/api/logout', (req, res) => {
 
 // Rota principal para servir o frontend
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/imovel_certo_app.html');
+  res.sendFile(__dirname + '/imovel_certo_auth.html');
 });
 
 // GET /api/me - Obter dados do usuário logado
