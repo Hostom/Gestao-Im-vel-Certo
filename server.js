@@ -381,6 +381,14 @@ app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegiona
 
 // POST /api/demandas - Adicionar nova demanda (corrigido)
 app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    console.log("--------------------------------------------------");
+    console.log("Requisição POST /api/demandas recebida.");
+    console.log("Usuário logado (req.user):");
+    console.log(req.user);
+    console.log("Regiões permitidas para o usuário (req.regioesPermitidas):");
+    console.log(req.regioesPermitidas);
+    console.log("Corpo da requisição (req.body):");
+    console.log(req.body);
     // Aceita nomes camelCase do frontend
     const {
         codigoDemanda,
