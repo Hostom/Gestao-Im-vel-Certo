@@ -478,7 +478,7 @@ app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegiona
 app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (req, res) => {
     const { codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, regiao_demanda } = req.body;
 
-    if (!codigo_demanda || !consultor_locacao || !cliente_interessado || !contato || !tipo_imovel || !regiao_desejada || !faixa_aluguel || !prazo_necessidade || !regiao_demanda) {
+  if (!codigo_demanda || !consultor_locacao || !cliente_interessado || !contato || !tipo_imovel || !regiao_desejada || !faixa_aluguel || !prazo_necessidade) {
         return res.status(400).json({ error: "Todos os campos obrigatórios devem ser preenchidos." });
     }
 
@@ -491,7 +491,7 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
         const client = await pool.connect();
         const { rows } = await client.query(
             `INSERT INTO demandas (codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, regiao_demanda, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, criado_por_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+             VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'Geral'), $8, $9, $10, $11, $12) RETURNING *`,
             [codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, regiao_demanda, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, req.user.id]
         );
         client.release();
@@ -560,6 +560,12 @@ app.put("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async
         if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
             client.release();
             return res.status(403).json({ error: "Acesso negado. Você não tem permissão para atualizar missões para demandas nesta região." });
+        } else if (req.user.tipo === "captador") {
+            const { rows: missaoCaptadorRows } = await client.query("SELECT captador_id FROM missoes WHERE id = $1", [id]);
+            if (missaoCaptadorRows.length === 0 || missaoCaptadorRows[0].captador_id !== req.user.id) {
+                client.release();
+                return res.status(403).json({ error: "Acesso negado. Você não é o captador responsável por esta missão." });
+            }
         }
 
         const { rows } = await client.query(
@@ -699,6 +705,12 @@ app.put("/api/missoes/:id/status", authenticateToken, verificarPermissaoRegional
         if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
             client.release();
             return res.status(403).json({ error: "Acesso negado. Você não tem permissão para atualizar missões para demandas nesta região." });
+        } else if (req.user.tipo === "captador") {
+            const { rows: missaoCaptadorRows } = await client.query("SELECT captador_id FROM missoes WHERE id = $1", [id]);
+            if (missaoCaptadorRows.length === 0 || missaoCaptadorRows[0].captador_id !== req.user.id) {
+                client.release();
+                return res.status(403).json({ error: "Acesso negado. Você não é o captador responsável por esta missão." });
+            }
         }
 
         const { rows } = await client.query(
@@ -713,6 +725,7 @@ app.put("/api/missoes/:id/status", authenticateToken, verificarPermissaoRegional
         res.json(rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar status da missão:", err);
+        console.error("Detalhes do erro na rota PUT /api/missoes/:id/status:", { id, status, user: req.user });
         res.status(500).json({ error: "Erro interno do servidor ao atualizar status da missão." });
     }
 });
@@ -766,8 +779,9 @@ app.get("/api/demandas/:id", authenticateToken, verificarPermissaoRegional, asyn
 
         res.json(demanda);
     } catch (err) {
-        console.error("Erro ao obter demanda:", err);
-        res.status(500).json({ error: "Erro interno do servidor" });
+        console.error("Erro ao adicionar demanda:", err);
+        console.error("Detalhes do erro na rota POST /api/demandas:", { body: req.body, user: req.user });
+        res.status(500).json({ error: "Erro interno do servidor ao adicionar demanda." });
     }
 });
 
