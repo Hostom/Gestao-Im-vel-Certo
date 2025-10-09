@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ]
+}
+git add vercel.json server.js
+git commit -m "Configurado para Vercel com PostgreSQL e corrigido lógica de inicialização de usuários."
+git pull origin main --rebase
+git push origin main
