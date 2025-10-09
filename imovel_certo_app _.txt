@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:,">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .kanban-column { min-width: 300px; }
@@ -18,11 +19,14 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- CONFIGURAÇÃO DA API ---
+        // --- CONFIGURAÇÃO DA API (CORRIGIDA) ---
         const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3001' 
-    : `${window.location.protocol}//${window.location.host}`;
-
+            ? 'http://localhost:3001' 
+            : `${window.location.protocol}//${window.location.host}`;
+        
+        // Log para debug
+        console.log('API_URL configurada:', API_URL);
+        console.log('Ambiente:', window.location.hostname);
         // -------------------------
 
         const { useState, useEffect, useCallback, useMemo } = React;
@@ -51,7 +55,9 @@
                 'Eye': '👁️',
                 'Edit': '✏️',
                 'Check': '✅',
-                'X': '❌'
+                'X': '❌',
+                'Search': '🔍',
+                'Filter': '🔽'
             };
             return <span className="mr-2">{icons[name] || '•'}</span>;
         };
@@ -68,16 +74,21 @@
                 ...options,
             };
 
-            const response = await fetch(`${API_URL}${endpoint}`, config);
-            
-            if (response.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.reload();
-                return;
-            }
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, config);
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.reload();
+                    return;
+                }
 
-            return response;
+                return response;
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                throw new Error('Erro de conexão com o servidor');
+            }
         };
 
         // Context para autenticação
@@ -98,22 +109,27 @@
             }, []);
 
             const login = async (email, senha) => {
-                const response = await fetch(`${API_URL}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, senha }),
-                });
+                try {
+                    const response = await fetch(`${API_URL}/api/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, senha }),
+                    });
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Erro no login');
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Erro no login');
+                    }
+
+                    const data = await response.json();
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    setUser(data.user);
+                    return data;
+                } catch (error) {
+                    console.error('Erro no login:', error);
+                    throw error;
                 }
-
-                const data = await response.json();
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setUser(data.user);
-                return data;
             };
 
             const logout = () => {
@@ -173,52 +189,46 @@
                         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                             <div className="rounded-md shadow-sm -space-y-px">
                                 <div>
-                                    <label htmlFor="email" className="sr-only">Email</label>
                                     <input
                                         id="email"
                                         name="email"
                                         type="email"
                                         required
+                                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                        placeholder="Email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                        placeholder="Email"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="senha" className="sr-only">Senha</label>
                                     <input
                                         id="senha"
                                         name="senha"
                                         type="password"
                                         required
+                                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                        placeholder="Senha"
                                         value={senha}
                                         onChange={(e) => setSenha(e.target.value)}
-                                        className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                        placeholder="Senha"
                                     />
                                 </div>
                             </div>
 
                             {error && (
-                                <div className="text-red-600 text-sm text-center">{error}</div>
+                                <div className="text-red-600 text-sm text-center">
+                                    {error}
+                                </div>
                             )}
 
                             <div>
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300"
+                                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                                 >
                                     <Icon name="Lock" />
                                     {loading ? 'Entrando...' : 'Entrar'}
                                 </button>
-                            </div>
-
-                            <div className="text-xs text-gray-500 text-center">
-                                <p><strong>Usuários de teste:</strong></p>
-                                <p>Gerente: admin@imovelcerto.com | Senha: 123456</p>
-                                <p>Captador: bruna@imovelcerto.com | Senha: 123456</p>
                             </div>
                         </form>
                     </div>
@@ -226,185 +236,187 @@
             );
         };
 
-        // Componente principal da aplicação
-        const App = () => {
-            const { user, loading } = useAuth();
-            const [view, setView] = useState('painel');
-            const [missoes, setMissoes] = useState([]);
-            const [demandas, setDemandas] = useState([]);
-            const [captadores, setCaptadores] = useState([]);
-            const [dataLoading, setDataLoading] = useState(true);
-            const [error, setError] = useState(null);
+        // Componentes de formulário
+        const FormInput = ({ name, label, icon, required, value, onChange, placeholder, type = "text" }) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Icon name={icon} />
+                    {label} {required && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                    type={type}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    required={required}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+        );
 
-            const fetchData = useCallback(async () => {
-                if (!user) return;
-                
-                setDataLoading(true);
-                setError(null);
-                try {
-                    const missoesRes = await apiRequest('/api/missoes');
-                    
-                    if (!missoesRes.ok) {
-                        throw new Error(`HTTP error! status: ${missoesRes.status}`);
-                    }
+        const FormSelect = ({ name, label, icon, options, value, onChange }) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Icon name={icon} />
+                    {label}
+                </label>
+                <select
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                    {options.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                    ))}
+                </select>
+            </div>
+        );
 
-                    const missoesData = await missoesRes.json();
-                    setMissoes(missoesData);
+        const FormTextarea = ({ name, label, value, onChange, placeholder }) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <textarea
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+        );
 
-                    // Apenas gerentes podem ver demandas e captadores
-                    if (user.tipo === 'gerente') {
-                        const [demandasRes, captadoresRes] = await Promise.all([
-                            apiRequest('/api/demandas'),
-                            apiRequest('/api/captadores')
-                        ]);
-                        
-                        if (demandasRes.ok) {
-                            const demandasData = await demandasRes.json();
-                            setDemandas(demandasData);
-                        }
-                        
-                        if (captadoresRes.ok) {
-                            const captadoresData = await captadoresRes.json();
-                            setCaptadores(captadoresData);
-                        }
-                    }
-
-                } catch (e) {
-                    console.error("Fetch error:", e);
-                    setError("Não foi possível carregar os dados da API.");
-                } finally {
-                    setDataLoading(false);
-                }
-            }, [user]);
-
-            useEffect(() => {
-                fetchData();
-            }, [fetchData]);
-
-            if (loading) {
-                return <div className="flex justify-center items-center h-screen">Carregando...</div>;
-            }
-
-            if (!user) {
-                return <LoginForm />;
-            }
-
-            const handleUpdateStatus = async (missaoId, newStatus) => {
-                const originalMissoes = [...missoes];
-                const updatedMissoes = missoes.map(m => m.id === missaoId ? { ...m, status: newStatus } : m);
-                setMissoes(updatedMissoes);
-
-                try {
-                    const response = await apiRequest(`/api/missoes/${missaoId}/status`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ status: newStatus }),
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Falha ao atualizar o status.');
-                    }
-                } catch (error) {
-                    console.error("Erro ao atualizar status:", error);
-                    setMissoes(originalMissoes);
-                    alert("Não foi possível atualizar o status. Tente novamente.");
-                }
-            };
-
-            const renderView = () => {
-                if (dataLoading) return <div className="flex justify-center items-center h-screen"><Icon name="Clock" />Carregando dados...</div>;
-                if (error) return <div className="flex justify-center items-center h-screen text-red-500 font-semibold p-4 bg-red-100 rounded-lg">{error}</div>;
-
-                switch(view) {
-                    case 'painel': 
-                        return user.tipo === 'gerente' 
-                            ? <PainelExecutivo missoes={missoes} demandas={demandas} />
-                            : <PainelCaptador missoes={missoes} user={user} />;
-                    case 'nova': 
-                        return user.tipo === 'gerente' 
-                            ? <NovaDemanda onDemandaCriada={fetchData} />
-                            : <div className="text-center text-gray-500">Acesso negado</div>;
-                    case 'missoes': 
-                        return <MissoesCaptacao missoes={missoes} onUpdateStatus={handleUpdateStatus} user={user} />;
-                    case 'captadores': 
-                        return user.tipo === 'gerente' 
-                            ? <GerenciarCaptadores captadores={captadores} onUpdate={fetchData} />
-                            : <div className="text-center text-gray-500">Acesso negado</div>;
-                    case 'relatorios': 
-                        return user.tipo === 'gerente' 
-                            ? <RelatoriosPerformance />
-                            : <div className="text-center text-gray-500">Acesso negado</div>;
-                    default: 
-                        return user.tipo === 'gerente' 
-                            ? <PainelExecutivo missoes={missoes} demandas={demandas} />
-                            : <PainelCaptador missoes={missoes} user={user} />;
-                }
+        // Componente KPI Card
+        const KPICard = ({ title, value, icon, color = 'blue' }) => {
+            const colorClasses = {
+                blue: 'bg-blue-50 text-blue-600 border-blue-200',
+                green: 'bg-green-50 text-green-600 border-green-200',
+                purple: 'bg-purple-50 text-purple-600 border-purple-200',
+                yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+                red: 'bg-red-50 text-red-600 border-red-200'
             };
 
             return (
-                <div className="flex h-screen bg-gray-50">
-                    <Sidebar user={user} view={view} setView={setView} />
-                    <main className="flex-1 p-6 overflow-auto">
-                        {renderView()}
-                    </main>
+                <div className={`p-6 rounded-lg border-2 ${colorClasses[color]}`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium opacity-75">{title}</p>
+                            <p className="text-3xl font-bold mt-1">{value}</p>
+                        </div>
+                        <div className="text-2xl opacity-75">
+                            <Icon name={icon} />
+                        </div>
+                    </div>
                 </div>
             );
         };
 
-        // Componente da barra lateral
-        const Sidebar = ({ user, view, setView }) => {
-            const { logout } = useAuth();
+        const KPIcard = ({ title, value }) => (
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+            </div>
+        );
 
-            const menuItems = user.tipo === 'gerente' ? [
-                { id: 'painel', icon: 'BarChart2', text: 'Painel Executivo' },
-                { id: 'nova', icon: 'FilePlus', text: 'Nova Demanda' },
-                { id: 'missoes', icon: 'Columns', text: 'Missões de Captação' },
-                { id: 'captadores', icon: 'Users', text: 'Gerenciar Captadores' },
-                { id: 'relatorios', icon: 'Trophy', text: 'Relatórios' },
-            ] : [
-                { id: 'painel', icon: 'BarChart2', text: 'Meu Painel' },
-                { id: 'missoes', icon: 'Columns', text: 'Minhas Missões' },
+        // Nova Demanda (apenas gerentes)
+        const NovaDemanda = ({ onDemandaCriada }) => {
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [formData, setFormData] = useState({
+                consultorLocacao: 'Matheus',
+                clienteInteressado: '',
+                contato: '',
+                tipoImovel: 'Apartamento',
+                regiaoDesejada: '',
+                regiaoDemanda: 'Geral',
+                faixaAluguel: 'De 8mil a 10mil',
+                caracteristicasDesejadas: '',
+                prazoNecessidade: 'Urgente',
+                observacoes: ''
+            });
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsSubmitting(true);
+                try {
+                    const response = await apiRequest('/api/demandas', {
+                        method: 'POST',
+                        body: JSON.stringify(formData),
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Falha ao criar a demanda.');
+                    }
+                    
+                    alert('Demanda enviada para captação com sucesso!');
+                    setFormData({
+                        consultorLocacao: 'Matheus',
+                        clienteInteressado: '',
+                        contato: '',
+                        tipoImovel: 'Apartamento',
+                        regiaoDesejada: '',
+                        regiaoDemanda: 'Geral',
+                        faixaAluguel: 'De 8mil a 10mil',
+                        caracteristicasDesejadas: '',
+                        prazoNecessidade: 'Urgente',
+                        observacoes: ''
+                    });
+                    if (onDemandaCriada) onDemandaCriada();
+                } catch (error) {
+                    console.error("Erro ao submeter:", error);
+                    alert(`Erro ao criar demanda: ${error.message}`);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            const inputFields = [
+                { name: 'clienteInteressado', label: 'Cliente Interessado', icon: 'User', required: true },
+                { name: 'contato', label: 'Contato (Telefone/Email)', icon: 'Phone', required: true },
+                { name: 'regiaoDesejada', label: 'Região / Bairro Desejado', icon: 'MapPin', required: true },
             ];
 
+            const selectFields = {
+                consultorLocacao: ["Israel", "Matheus", "Bruna K", "Kerolin", "Stephanie", "Lidiane"],
+                tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
+                faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
+                prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
+                regiaoDemanda: ["Geral", "Itapema", "Balneario_Camboriu", "Itajai"],
+            };
+
             return (
-                <aside className="w-64 bg-white shadow-md flex flex-col">
-                    <div className="p-4 border-b">
-                        <h1 className="text-xl font-bold text-gray-800">Imóvel Certo</h1>
-                        <p className="text-sm text-gray-500">Gestão de Captação</p>
-                        <div className="mt-2 text-xs text-gray-600">
-                            <p><strong>{user.nome}</strong></p>
-                            <p className="capitalize">{user.tipo}</p>
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Nova Demanda de Locação</h2>
+                    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormSelect name="consultorLocacao" label="Consultor de Locação" icon="Briefcase" options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
+                            {inputFields.map(field => <FormInput key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />)}
+                            <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon="Building" options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
+                            <FormSelect name="regiaoDemanda" label="Região da Demanda" icon="MapPin" options={selectFields.regiaoDemanda} value={formData.regiaoDemanda} onChange={handleChange} />
+                            <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon="Star" options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
+                            <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon="Calendar" options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
                         </div>
-                    </div>
-                    <nav className="flex-1 p-2 space-y-2">
-                        {menuItems.map(item => (
-                            <NavItem 
-                                key={item.id}
-                                icon={item.icon} 
-                                text={item.text} 
-                                active={view === item.id} 
-                                onClick={() => setView(item.id)} 
-                            />
-                        ))}
-                    </nav>
-                    <div className="p-2 border-t">
-                        <button 
-                            onClick={logout}
-                            className="w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-                        >
-                            <Icon name="LogOut" />
-                            Sair
-                        </button>
-                    </div>
-                </aside>
+
+                        <FormTextarea name="caracteristicasDesejadas" label="Características Desejadas" value={formData.caracteristicasDesejadas} onChange={handleChange} placeholder="Ex: 3 suítes, sacada com churrasqueira, mobiliado..." />
+                        <FormTextarea name="observacoes" label="Observações" value={formData.observacoes} onChange={handleChange} placeholder="Informações adicionais relevantes..." />
+
+                        <div className="text-right">
+                            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
+                                {isSubmitting ? <Icon name="Clock" /> : <Icon name="FilePlus" />}
+                                {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             );
         };
-
-        const NavItem = ({ icon, text, active, onClick }) => (
-            <button onClick={onClick} className={`w-full flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${active ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}>
-                <Icon name={icon} />
-                {text}
-            </button>
-        );
 
         // Painel Executivo (Gerente)
         const PainelExecutivo = ({ missoes, demandas }) => {
@@ -504,167 +516,36 @@
             );
         };
 
-        const KPIcard = ({ title, value }) => (
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-            </div>
-        );
-
-        // Nova Demanda (apenas gerentes)
-        const NovaDemanda = ({ onDemandaCriada }) => {
-            const [isSubmitting, setIsSubmitting] = useState(false);
-            const [formData, setFormData] = useState({
-                consultorLocacao: 'Matheus',
-                clienteInteressado: '',
-                contato: '',
-                tipoImovel: 'Apartamento',
-                regiaoDesejada: '',
-                faixaAluguel: 'De 8mil a 10mil',
-                caracteristicasDesejadas: '',
-                prazoNecessidade: 'Urgente',
-                observacoes: ''
-            });
-
-            const handleChange = (e) => {
-                const { name, value } = e.target;
-                setFormData(prev => ({ ...prev, [name]: value }));
-            };
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setIsSubmitting(true);
-                try {
-                    const response = await apiRequest('/api/demandas', {
-                        method: 'POST',
-                        body: JSON.stringify(formData),
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Falha ao criar a demanda.');
-                    }
-                    
-                    alert('Demanda enviada para captação com sucesso!');
-                    setFormData({
-                        consultorLocacao: 'Matheus',
-                        clienteInteressado: '',
-                        contato: '',
-                        tipoImovel: 'Apartamento',
-                        regiaoDesejada: '',
-                        faixaAluguel: 'De 8mil a 10mil',
-                        caracteristicasDesejadas: '',
-                        prazoNecessidade: 'Urgente',
-                        observacoes: ''
-                    });
-                    if (onDemandaCriada) onDemandaCriada();
-                } catch (error) {
-                    console.error("Erro ao submeter:", error);
-                    alert('Erro ao criar demanda. Tente novamente.');
-                } finally {
-                    setIsSubmitting(false);
-                }
-            };
-
-            const inputFields = [
-                { name: 'clienteInteressado', label: 'Cliente Interessado', icon: 'User', required: true },
-                { name: 'contato', label: 'Contato (Telefone/Email)', icon: 'Phone', required: true },
-                { name: 'regiaoDesejada', label: 'Região / Bairro Desejado', icon: 'MapPin', required: true },
-            ];
-
-            const selectFields = {
-                consultorLocacao: ["Israel", "Matheus", "Bruna K", "Kerolin", "Stephanie"],
-                tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
-                faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
-                prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
-            };
-
-            return (
-                <div className="max-w-4xl mx-auto">
-                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Nova Demanda de Locação</h2>
-                    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormSelect name="consultorLocacao" label="Consultor de Locação" icon="Briefcase" options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
-                            {inputFields.map(field => <FormInput key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />)}
-                            <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon="Building" options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
-                            <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon="Star" options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
-                            <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon="Calendar" options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
-                        </div>
-
-                        <FormTextarea name="caracteristicasDesejadas" label="Características Desejadas" value={formData.caracteristicasDesejadas} onChange={handleChange} placeholder="Ex: 3 suítes, sacada com churrasqueira, mobiliado..." />
-                        <FormTextarea name="observacoes" label="Observações" value={formData.observacoes} onChange={handleChange} placeholder="Informações adicionais relevantes..." />
-
-                        <div className="text-right">
-                            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
-                                {isSubmitting ? <Icon name="Clock" /> : <Icon name="FilePlus" />}
-                                {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            );
-        };
-
-        const FormInput = ({ name, label, icon, value, onChange, required = false }) => (
-            <div>
-                <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                <div className="relative rounded-md shadow-sm">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <Icon name={icon} />
-                    </div>
-                    <input type="text" name={name} id={name} required={required} value={value} onChange={onChange} className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2.5" />
-                </div>
-            </div>
-        );
-
-        const FormSelect = ({ name, label, icon, options, value, onChange }) => (
-            <div>
-                <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <Icon name={icon} />
-                    </div>
-                    <select id={name} name={name} value={value} onChange={onChange} className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2.5 pl-10 pr-8 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                </div>
-            </div>
-        );
-
-        const FormTextarea = ({ name, label, value, onChange, placeholder }) => (
-            <div>
-                <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                <textarea id={name} name={name} value={value} onChange={onChange} rows={3} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md" placeholder={placeholder}></textarea>
-            </div>
-        );
-
-        // Missões de Captação
-        const MissoesCaptacao = ({ missoes, onUpdateStatus, user }) => {
+        // Componente de Missões Kanban
+        const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
+            const [missoes, setMissoes] = useState(missoesExternas || []);
             const [selectedMissao, setSelectedMissao] = useState(null);
             const [interacoes, setInteracoes] = useState([]);
             const [novaInteracao, setNovaInteracao] = useState('');
+            const [loading, setLoading] = useState(true);
 
-            const columns = ['Em busca', 'Encontrado', 'Locado', 'Sem opção'];
+            const columns = ['Em busca', 'Encontrado', 'Locado'];
 
-            const handleDragStart = (e, missaoId) => {
-                e.dataTransfer.setData("missaoId", missaoId);
-            };
+            useEffect(() => {
+                if (missoesExternas) {
+                    setMissoes(missoesExternas);
+                } else {
+                    loadMissoes();
+                }
+            }, [missoesExternas]);
 
-            const handleDrop = (e, newStatus) => {
-                const missaoId = parseInt(e.dataTransfer.getData("missaoId"), 10);
-                onUpdateStatus(missaoId, newStatus);
-            };
-
-            const handleDragOver = (e) => {
-                e.preventDefault();
-            };
-
-            const getSLAColor = (dataMissao) => {
-                const now = new Date();
-                const start = new Date(dataMissao);
-                const diffHours = (now - start) / (1000 * 60 * 60);
-                if (diffHours >= 48) return 'bg-red-500';
-                if (diffHours >= 24) return 'bg-yellow-500';
-                return 'bg-green-500';
+            const loadMissoes = async () => {
+                try {
+                    const response = await apiRequest('/api/missoes');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setMissoes(data);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar missões:', error);
+                } finally {
+                    setLoading(false);
+                }
             };
 
             const loadInteracoes = async (missaoId) => {
@@ -679,18 +560,35 @@
                 }
             };
 
-            const addInteracao = async () => {
-                if (!novaInteracao.trim() || !selectedMissao) return;
+            const updateMissaoStatus = async (missaoId, novoStatus) => {
+                try {
+                    const response = await apiRequest(`/api/missoes/${missaoId}/status`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ status: novoStatus }),
+                    });
+                    
+                    if (response.ok) {
+                        setMissoes(prev => prev.map(m => 
+                            m.id === missaoId ? { ...m, status: novoStatus } : m
+                        ));
+                        if (onRefresh) {
+                            onRefresh();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro ao atualizar status:', error);
+                }
+            };
 
+            const addInteracao = async () => {
+                if (!novaInteracao.trim()) return;
+                
                 try {
                     const response = await apiRequest(`/api/missoes/${selectedMissao.id}/interacoes`, {
                         method: 'POST',
-                        body: JSON.stringify({
-                            tipo: 'comentario',
-                            descricao: novaInteracao
-                        }),
+                        body: JSON.stringify({ descricao: novaInteracao }),
                     });
-
+                    
                     if (response.ok) {
                         setNovaInteracao('');
                         loadInteracoes(selectedMissao.id);
@@ -700,10 +598,38 @@
                 }
             };
 
+            const getSLAColor = (dataMissao) => {
+                const agora = new Date();
+                const criacao = new Date(dataMissao);
+                const horasPassadas = (agora - criacao) / (1000 * 60 * 60);
+                
+                if (horasPassadas > 48) return 'bg-red-500';
+                if (horasPassadas > 24) return 'bg-yellow-500';
+                return 'bg-green-500';
+            };
+
+            const handleDragStart = (e, missaoId) => {
+                e.dataTransfer.setData('text/plain', missaoId);
+            };
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+            };
+
+            const handleDrop = (e, novoStatus) => {
+                e.preventDefault();
+                const missaoId = parseInt(e.dataTransfer.getData('text/plain'));
+                updateMissaoStatus(missaoId, novoStatus);
+            };
+
             const openMissaoDetails = (missao) => {
                 setSelectedMissao(missao);
                 loadInteracoes(missao.id);
             };
+
+            if (loading) {
+                return <div className="flex justify-center items-center h-64">Carregando missões...</div>;
+            }
 
             // Filtrar missões se for captador
             const missoesExibidas = user.tipo === 'captador' 
@@ -812,215 +738,464 @@
             );
         };
 
-        // Gerenciar Captadores (apenas gerentes)
-        const GerenciarCaptadores = ({ captadores, onUpdate }) => {
-            const [showForm, setShowForm] = useState(false);
-            const [formData, setFormData] = useState({ nome: '', email: '', senha: '' });
+        // Componente principal de Relatórios
+        const RelatoriosPage = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [dashboardData, setDashboardData] = useState(null);
+            const [performanceData, setPerformanceData] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const { user } = useAuth();
 
-            const handleSubmit = async (e) => {
-                e.preventDefault();
+            // Carregar dados do dashboard
+            useEffect(() => {
+                loadDashboardData();
+                loadPerformanceData();
+            }, []);
+
+            const loadDashboardData = async () => {
+                setLoading(true);
                 try {
-                    const response = await apiRequest('/api/captadores', {
-                        method: 'POST',
-                        body: JSON.stringify(formData),
-                    });
-
+                    const response = await apiRequest('/api/relatorios/dashboard');
                     if (response.ok) {
-                        alert('Captador criado com sucesso!');
-                        setFormData({ nome: '', email: '', senha: '' });
-                        setShowForm(false);
-                        onUpdate();
-                    } else {
-                        const error = await response.json();
-                        alert(error.error || 'Erro ao criar captador');
+                        const data = await response.json();
+                        setDashboardData(data);
                     }
                 } catch (error) {
-                    console.error('Erro ao criar captador:', error);
-                    alert('Erro ao criar captador');
+                    console.error('Erro ao carregar dashboard:', error);
+                } finally {
+                    setLoading(false);
                 }
             };
 
-            const toggleStatus = async (captadorId, ativo) => {
+            const loadPerformanceData = async () => {
                 try {
-                    const response = await apiRequest(`/api/captadores/${captadorId}/status`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ ativo: !ativo }),
-                    });
-
+                    const response = await apiRequest('/api/relatorios/performance-captadores');
                     if (response.ok) {
-                        onUpdate();
+                        const data = await response.json();
+                        setPerformanceData(data);
                     }
                 } catch (error) {
-                    console.error('Erro ao alterar status:', error);
+                    console.error('Erro ao carregar performance:', error);
                 }
+            };
+
+            const tabs = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2' },
+                { id: 'performance', label: 'Performance', icon: 'Trophy' },
+                { id: 'demandas', label: 'Demandas', icon: 'FilePlus' },
+                { id: 'historico', label: 'Histórico', icon: 'Clock' }
+            ];
+
+            // Filtrar tabs baseado no tipo de usuário
+            const availableTabs = tabs.filter(tab => {
+                if (user.tipo === 'captador') {
+                    return ['dashboard', 'performance'].includes(tab.id);
+                }
+                return true;
+            });
+
+            // Determinar título baseado no usuário
+            const getTitulo = () => {
+                if (user.tipo === 'admin') return 'Relatórios - Visão Geral';
+                if (user.tipo === 'gerente_regional') {
+                    const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(',') : [user.regiao];
+                    return `Relatórios - ${regioes.join(' e ')}`;
+                }
+                return 'Meus Relatórios';
             };
 
             return (
-                <div>
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-3xl font-bold text-gray-800">Gerenciar Captadores</h2>
-                        <button
-                            onClick={() => setShowForm(!showForm)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                        >
-                            <Icon name="Plus" />
-                            Novo Captador
-                        </button>
+                <div className="p-6">
+                    <div className="mb-6">
+                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                            {getTitulo()}
+                        </h1>
+                        <p className="text-gray-600">
+                            {user.tipo === 'admin' ? 'Visão geral de todas as regiões' :
+                             user.tipo === 'gerente_regional' ? `Relatórios das suas regiões` :
+                             'Seus relatórios pessoais'}
+                        </p>
                     </div>
 
-                    {showForm && (
-                        <div className="bg-white p-6 rounded-lg shadow mb-6">
-                            <h3 className="text-lg font-semibold mb-4">Novo Captador</h3>
-                            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <input
-                                    type="text"
-                                    placeholder="Nome completo"
-                                    value={formData.nome}
-                                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                                    className="border border-gray-300 rounded px-3 py-2"
-                                    required
-                                />
-                                <input
-                                    type="email"
-                                    placeholder="Email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="border border-gray-300 rounded px-3 py-2"
-                                    required
-                                />
-                                <input
-                                    type="password"
-                                    placeholder="Senha"
-                                    value={formData.senha}
-                                    onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                                    className="border border-gray-300 rounded px-3 py-2"
-                                    required
-                                />
-                                <div className="md:col-span-3 flex space-x-2">
-                                    <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                                        Criar
-                                    </button>
-                                    <button type="button" onClick={() => setShowForm(false)} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </form>
+                    {/* Tabs de navegação */}
+                    <div className="border-b border-gray-200 mb-6">
+                        <nav className="-mb-px flex space-x-8">
+                            {availableTabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <Icon name={tab.icon} />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    {/* Conteúdo das tabs */}
+                    {loading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
                         </div>
+                    ) : (
+                        <>
+                            {activeTab === 'dashboard' && <DashboardTab data={dashboardData} />}
+                            {activeTab === 'performance' && <PerformanceTab data={performanceData} />}
+                            {activeTab === 'demandas' && <DemandasTab />}
+                            {activeTab === 'historico' && <HistoricoTab />}
+                        </>
                     )}
-
-                    <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Criação</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {captadores.map(captador => (
-                                    <tr key={captador.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{captador.nome}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${captador.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                {captador.ativo ? 'Ativo' : 'Inativo'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(captador.data_criacao).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button
-                                                onClick={() => toggleStatus(captador.id, captador.ativo)}
-                                                className={`${captador.ativo ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                                            >
-                                                {captador.ativo ? 'Inativar' : 'Ativar'}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             );
         };
 
-        // Relatórios de Performance (apenas gerentes)
-        const RelatoriosPerformance = () => {
-            const [relatorio, setRelatorio] = useState([]);
-            const [loading, setLoading] = useState(true);
-
-            useEffect(() => {
-                const fetchRelatorio = async () => {
-                    try {
-                        const response = await apiRequest('/api/relatorios/performance');
-                        if (response.ok) {
-                            const data = await response.json();
-                            setRelatorio(data);
-                        }
-                    } catch (error) {
-                        console.error('Erro ao carregar relatório:', error);
-                    } finally {
-                        setLoading(false);
-                    }
-                };
-
-                fetchRelatorio();
-            }, []);
-
-            if (loading) {
-                return <div className="flex justify-center items-center h-64">Carregando relatório...</div>;
+        // Tab do Dashboard
+        const DashboardTab = ({ data }) => {
+            if (!data) {
+                return <div className="text-center py-8">Carregando dados...</div>;
             }
 
             return (
-                <div>
-                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Relatórios de Performance</h2>
-                    <div className="bg-white shadow-md rounded-lg overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Captador</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Missões</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encontrados</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locados</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taxa Conversão (%)</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo Médio (h)</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {relatorio.map(item => (
-                                    <tr key={item.captador}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.captador}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.total_missoes}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.encontrados}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.locados}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.taxa_conversao}%</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {item.tempo_medio_horas ? parseFloat(item.tempo_medio_horas).toFixed(1) : '-'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                <div className="space-y-6">
+                    {/* KPIs principais */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPICard 
+                            title="Total de Demandas" 
+                            value={data.totalDemandas} 
+                            icon="FilePlus"
+                            color="blue"
+                        />
+                        <KPICard 
+                            title="Demandas do Mês" 
+                            value={data.demandasMes} 
+                            icon="Calendar"
+                            color="green"
+                        />
+                        <KPICard 
+                            title="Total de Missões" 
+                            value={data.totalMissoes} 
+                            icon="Briefcase"
+                            color="purple"
+                        />
+                        <KPICard 
+                            title="Taxa de Sucesso" 
+                            value={`${data.taxaSucesso}%`} 
+                            icon="Trophy"
+                            color="yellow"
+                        />
+                    </div>
+
+                    {/* Gráficos e métricas adicionais */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-lg font-semibold mb-4">Resumo de Atividades</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Missões Locadas</span>
+                                    <span className="font-semibold text-green-600">{data.missoesLocadas}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Missões Ativas</span>
+                                    <span className="font-semibold text-blue-600">{data.totalMissoes - data.missoesLocadas}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Eficiência</span>
+                                    <span className="font-semibold text-purple-600">{data.taxaSucesso}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-lg font-semibold mb-4">Tendências</h3>
+                            <div className="text-center py-8 text-gray-500">
+                                <Icon name="BarChart2" />
+                                <p>Gráfico de tendências será implementado aqui</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // Componente principal com provider de autenticação
-        const AppWithAuth = () => (
+        // Tab de Performance
+        const PerformanceTab = ({ data }) => {
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold">Performance dos Captadores</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Captador
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Região
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total Missões
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Locadas
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Encontradas
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Em Busca
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Taxa de Sucesso
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {data.map((captador) => (
+                                        <tr key={captador.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <Icon name="User" />
+                                                    <span className="font-medium text-gray-900">{captador.captador_nome}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {captador.regiao}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {captador.total_missoes}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    {captador.missoes_locadas}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {captador.missoes_encontradas}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    {captador.missoes_em_busca}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <div className="flex items-center">
+                                                    <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div 
+                                                            className="bg-green-600 h-2 rounded-full" 
+                                                            style={{ width: `${captador.taxa_sucesso || 0}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="font-medium">{captador.taxa_sucesso || 0}%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Tab de Demandas (simplificada para o exemplo)
+        const DemandasTab = () => {
+            return (
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Relatório de Demandas</h3>
+                    <p className="text-gray-600">Funcionalidade de relatório de demandas será implementada aqui.</p>
+                </div>
+            );
+        };
+
+        // Tab de Histórico (simplificada para o exemplo)
+        const HistoricoTab = () => {
+            return (
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Histórico de Relatórios</h3>
+                    <p className="text-gray-600">Histórico de relatórios gerados será implementado aqui.</p>
+                </div>
+            );
+        };
+
+        // Componente de navegação lateral
+        const Sidebar = ({ activeView, setActiveView, user }) => {
+            const { logout } = useAuth();
+
+            const menuItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['admin', 'gerente_regional', 'captador'] },
+                { id: 'demandas', label: 'Demandas', icon: 'FilePlus', roles: ['admin', 'gerente_regional'] },
+                { id: 'missoes', label: 'Missões', icon: 'Briefcase', roles: ['admin', 'gerente_regional', 'captador'] },
+                { id: 'relatorios', label: 'Relatórios', icon: 'BarChart2', roles: ['admin', 'gerente_regional', 'captador'] },
+                { id: 'usuarios', label: 'Usuários', icon: 'Users', roles: ['admin'] }
+            ];
+
+            const availableItems = menuItems.filter(item => item.roles.includes(user.tipo));
+
+            // Determinar título do usuário
+            const getUserTitle = () => {
+                if (user.tipo === 'admin') return 'Administrador';
+                if (user.tipo === 'gerente_regional') {
+                    const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(',') : [user.regiao];
+                    return `Gerente - ${regioes.join(' e ')}`;
+                }
+                return 'Captador';
+            };
+
+            return (
+                <div className="bg-white shadow-lg h-screen w-64 fixed left-0 top-0 overflow-y-auto">
+                    <div className="p-6">
+                        <h1 className="text-xl font-bold text-gray-800">Imóvel Certo</h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {getUserTitle()}
+                        </p>
+                    </div>
+                    
+                    <nav className="mt-6">
+                        {availableItems.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveView(item.id)}
+                                className={`w-full text-left px-6 py-3 flex items-center hover:bg-gray-50 ${
+                                    activeView === item.id ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-700'
+                                }`}
+                            >
+                                <Icon name={item.icon} />
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div className="absolute bottom-0 w-full p-6">
+                        <div className="border-t pt-4">
+                            <p className="text-sm text-gray-600 mb-2">{user.nome}</p>
+                            <button
+                                onClick={logout}
+                                className="w-full text-left text-red-600 hover:text-red-800 flex items-center"
+                            >
+                                <Icon name="LogOut" />
+                                Sair
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente principal do Dashboard
+        const Dashboard = () => {
+            const [activeView, setActiveView] = useState('dashboard');
+            const [missoes, setMissoes] = useState([]);
+            const [demandas, setDemandas] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const { user } = useAuth();
+
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            const loadData = async () => {
+                try {
+                    const [missoesRes, demandasRes] = await Promise.all([
+                        apiRequest('/api/missoes'),
+                        apiRequest('/api/demandas')
+                    ]);
+
+                    if (missoesRes.ok) {
+                        const missoesData = await missoesRes.json();
+                        setMissoes(missoesData);
+                    }
+
+                    if (demandasRes.ok) {
+                        const demandasData = await demandasRes.json();
+                        setDemandas(demandasData);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar dados:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const renderContent = () => {
+                if (loading) {
+                    return (
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                        </div>
+                    );
+                }
+
+                switch (activeView) {
+                    case 'relatorios':
+                        return <RelatoriosPage />;
+                    case 'dashboard':
+                        return user.tipo === 'captador' ? 
+                            <PainelCaptador missoes={missoes} user={user} /> :
+                            <PainelExecutivo missoes={missoes} demandas={demandas} />;
+                    case 'demandas':
+                        return <NovaDemanda onDemandaCriada={loadData} />;
+                    case 'missoes':
+                        return <MissoesKanban user={user} missoesExternas={missoes} onRefresh={loadData} />;
+                    default:
+                        return (
+                            <div className="p-6">
+                                <h2 className="text-2xl font-bold mb-4">
+                                    {activeView.charAt(0).toUpperCase() + activeView.slice(1)}
+                                </h2>
+                                <p className="text-gray-600">
+                                    Esta funcionalidade será implementada em breve.
+                                </p>
+                            </div>
+                        );
+                }
+            };
+
+            return (
+                <div className="flex">
+                    <Sidebar activeView={activeView} setActiveView={setActiveView} user={user} />
+                    <div className="ml-64 flex-1 min-h-screen bg-gray-50">
+                        {renderContent()}
+                    </div>
+                </div>
+            );
+        };
+
+        // App principal
+        const App = () => {
+            const { user, loading } = useAuth();
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+                            <p className="mt-4 text-gray-600">Carregando...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return user ? <Dashboard /> : <LoginForm />;
+        };
+
+        // Renderizar a aplicação
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
             <AuthProvider>
                 <App />
             </AuthProvider>
         );
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<AppWithAuth />);
-
     </script>
 </body>
 </html>
