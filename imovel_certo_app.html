@@ -351,7 +351,8 @@
                     });
                     
                     if (!response.ok) {
-                        throw new Error('Falha ao criar a demanda.');
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Falha ao criar a demanda.');
                     }
                     
                     alert('Demanda enviada para captação com sucesso!');
@@ -370,7 +371,7 @@
                     if (onDemandaCriada) onDemandaCriada();
                 } catch (error) {
                     console.error("Erro ao submeter:", error);
-                    alert('Erro ao criar demanda. Tente novamente.');
+                    alert(`Erro ao criar demanda: ${error.message}`);
                 } finally {
                     setIsSubmitting(false);
                 }
@@ -387,7 +388,7 @@
                 tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
                 faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
                 prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
-                regiaoDemanda: ["Geral", "Balneário Camboriú", "Itajaí", "Itapema"],
+                regiaoDemanda: ["Geral", "Itapema", "Balneario_Camboriu", "Itajai"],
             };
 
             return (
