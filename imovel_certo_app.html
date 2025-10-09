@@ -19,7 +19,10 @@
 
     <script type="text/babel">
         // --- CONFIGURAÇÃO DA API ---
-        const API_URL = 'gestao-im-vel-certo-production.up.railway.app';
+        const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001' 
+    : `${window.location.protocol}//${window.location.host}`;
+
         // -------------------------
 
         const { useState, useEffect, useCallback, useMemo } = React;
