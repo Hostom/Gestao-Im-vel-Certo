@@ -15,10 +15,10 @@ const pool = new Pool({
 });
 
 // Chave secreta para JWT (em produção, use uma variável de ambiente)
-const JWT_SECRET = process.env.JWT_SECRET || "54b6e598690caa0049c1b61f8b527a91c97eca53b7558fe7";
+const JWT_SECRET = process.env.JWT_SECRET || "sua_chave_secreta_muito_segura_aqui";
 
 async function initializeDb() {
-    let client; // Declare client here to ensure it\\\\'s always defined
+    let client; // Declare client here to ensure it's always defined
     try {
         client = await pool.connect();
         console.log("Conectado ao PostgreSQL!");
@@ -30,8 +30,8 @@ async function initializeDb() {
                 nome TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 senha TEXT NOT NULL,
-                tipo TEXT NOT NULL CHECK (tipo IN ('admin', 'gerente_regional', 'captador')),
-                regiao TEXT DEFAULT 'Geral',
+                tipo TEXT NOT NULL CHECK (tipo IN (\'admin\', \'gerente_regional\', \'captador\')),
+                regiao TEXT DEFAULT \'Geral\',
                 regioes_responsavel TEXT,
                 gerente_responsavel_id INTEGER REFERENCES usuarios(id),
                 ativo BOOLEAN DEFAULT TRUE,
@@ -41,16 +41,16 @@ async function initializeDb() {
             -- Adicionar colunas se não existirem
             DO $$
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='regioes_responsavel') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'regioes_responsavel\') THEN
                     ALTER TABLE usuarios ADD COLUMN regioes_responsavel TEXT;
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='gerente_responsavel_id') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'gerente_responsavel_id\') THEN
                     ALTER TABLE usuarios ADD COLUMN gerente_responsavel_id INTEGER REFERENCES usuarios(id);
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='ativo') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'ativo\') THEN
                     ALTER TABLE usuarios ADD COLUMN ativo BOOLEAN DEFAULT TRUE;
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='data_criacao') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'data_criacao\') THEN
                     ALTER TABLE usuarios ADD COLUMN data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
                 END IF;
             END
@@ -64,7 +64,7 @@ async function initializeDb() {
                 contato TEXT NOT NULL,
                 tipo_imovel TEXT NOT NULL,
                 regiao_desejada TEXT NOT NULL,
-                regiao_demanda TEXT DEFAULT 'Geral',
+                regiao_demanda TEXT DEFAULT \'Geral\',
                 faixa_aluguel TEXT NOT NULL,
                 caracteristicas_desejadas TEXT,
                 prazo_necessidade TEXT NOT NULL,
@@ -75,10 +75,10 @@ async function initializeDb() {
 
             DO $$
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='demandas' AND column_name='regiao_demanda') THEN
-                    ALTER TABLE demandas ADD COLUMN regiao_demanda TEXT DEFAULT 'Geral';
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'demandas\' AND column_name=\'regiao_demanda\') THEN
+                    ALTER TABLE demandas ADD COLUMN regiao_demanda TEXT DEFAULT \'Geral\';
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='demandas' AND column_name='criado_por_id') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'demandas\' AND column_name=\'criado_por_id\') THEN
                     ALTER TABLE demandas ADD COLUMN criado_por_id INTEGER REFERENCES usuarios(id);
                 END IF;
             END
@@ -93,7 +93,7 @@ async function initializeDb() {
                 consultor_solicitante TEXT NOT NULL,
                 regiao_bairro TEXT NOT NULL,
                 descricao_busca TEXT NOT NULL,
-                status TEXT DEFAULT 'Em busca' CHECK (status IN ('Em busca', 'Encontrado', 'Locado')),
+                status TEXT DEFAULT \'Em busca\' CHECK (status IN (\'Em busca\', \'Encontrado\', \'Locado\')),
                 data_missao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 data_retorno TIMESTAMP,
                 criado_por_id INTEGER REFERENCES usuarios(id)
@@ -101,10 +101,10 @@ async function initializeDb() {
 
             DO $$
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='missoes' AND column_name='captador_id') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'missoes\' AND column_name=\'captador_id\') THEN
                     ALTER TABLE missoes ADD COLUMN captador_id INTEGER REFERENCES usuarios(id);
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='missoes' AND column_name='criado_por_id') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'missoes\' AND column_name=\'criado_por_id\') THEN
                     ALTER TABLE missoes ADD COLUMN criado_por_id INTEGER REFERENCES usuarios(id);
                 END IF;
             END
@@ -122,7 +122,7 @@ async function initializeDb() {
             CREATE TABLE IF NOT EXISTS relatorios (
                 id SERIAL PRIMARY KEY,
                 titulo TEXT NOT NULL,
-                tipo TEXT NOT NULL CHECK (tipo IN ('demandas', 'missoes', 'performance', 'geral')),
+                tipo TEXT NOT NULL CHECK (tipo IN (\'demandas\', \'missoes\', \'performance\', \'geral\')),
                 filtros TEXT,
                 gerado_por_id INTEGER REFERENCES usuarios(id),
                 regiao TEXT,
@@ -249,7 +249,7 @@ app.use(session({
 }));
 
 // Serve arquivos estáticos (se houver um frontend)
-// app.use(express.static(path.join(__dirname, 'public'))); 
+// app.use(express.static(path.join(__dirname, \'public\'))); 
 
 // --- Middleware de Autenticação ---
 const authenticateToken = (req, res, next) => {
@@ -358,50 +358,113 @@ app.post("/api/login", async (req, res) => {
     }
 });
 
-// POST /api/logout - Fazer logout
-app.post("/api/logout", (req, res) => {
-    req.session.destroy();
-    res.json({ message: "Logout realizado com sucesso" });
-});
-
-// --- Rotas da API (Endpoints) ---
-
-// Rota principal para servir o frontend
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/imovel_certo_app.html");
-});
-
 // GET /api/me - Obter dados do usuário logado
 app.get("/api/me", authenticateToken, (req, res) => {
     res.json(req.user);
 });
 
-// GET /api/missoes - Retorna missões (filtradas por captador se não for gerente)
-app.get("/api/missoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+// --- Rotas de Usuários ---
+
+// POST /api/usuarios - Criar novo usuário (apenas para admin)
+app.post("/api/usuarios", authenticateToken, requireAdmin, async (req, res) => {
+    const { nome, email, senha, tipo, regiao, regioes_responsavel, gerente_responsavel_id } = req.body;
+
+    if (!nome || !email || !senha || !tipo) {
+        return res.status(400).json({ error: "Nome, email, senha e tipo são obrigatórios." });
+    }
+
     try {
         const client = await pool.connect();
-        let query = `SELECT m.*, d.regiao_demanda FROM missoes m JOIN demandas d ON m.demanda_id = d.id`;
-        let params = [];
+        const senhaHash = await bcrypt.hash(senha, 10);
+        const { rows } = await client.query(
+            `INSERT INTO usuarios (nome, email, senha, tipo, regiao, regioes_responsavel, gerente_responsavel_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, nome, email, tipo, regiao, regioes_responsavel, gerente_responsavel_id`,
+            [nome, email, senhaHash, tipo, regiao, regioes_responsavel, gerente_responsavel_id]
+        );
+        client.release();
+        res.status(201).json(rows[0]);
+    } catch (err) {
+        console.error("Erro ao criar usuário:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao criar usuário." });
+    }
+});
 
-        if (req.user.tipo === "gerente_regional") {
-            const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
-            query += ` WHERE d.regiao_demanda IN (${placeholders})`;
-            params = req.regioesPermitidas;
-        } else if (req.user.tipo === "captador") {
-            query += ` WHERE m.captador_id = $1`;
-            params = [req.user.id];
-        }
+// GET /api/usuarios - Retorna todos os usuários (apenas para admin)
+app.get("/api/usuarios", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const client = await pool.connect();
+        const { rows } = await client.query(`SELECT id, nome, email, tipo, regiao, regioes_responsavel, ativo FROM usuarios ORDER BY nome`);
+        client.release();
+        res.json(rows);
+    } catch (err) {
+        console.error("Erro ao obter usuários:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
 
-        query += ` ORDER BY m.data_missao DESC`;
+// GET /api/usuarios/captadores - Retorna apenas captadores (para gerentes regionais)
+app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    let query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \'captador\' ORDER BY nome`;
+    let params = [];
 
+    if (req.user.tipo === "gerente_regional") {
+        const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
+        query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \'captador\' AND regiao IN (${placeholders}) ORDER BY nome`;
+        params = req.regioesPermitidas;
+    }
+
+    try {
+        const client = await pool.connect();
         const { rows } = await client.query(query, params);
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error("Erro ao obter missões:", err);
+        console.error("Erro ao obter captadores:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
+
+// PUT /api/usuarios/:id - Atualizar usuário (apenas para admin)
+app.put("/api/usuarios/:id", authenticateToken, requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { nome, email, tipo, regiao, regioes_responsavel, gerente_responsavel_id, ativo } = req.body;
+
+    try {
+        const client = await pool.connect();
+        const { rows } = await client.query(
+            `UPDATE usuarios SET nome = $1, email = $2, tipo = $3, regiao = $4, regioes_responsavel = $5, gerente_responsavel_id = $6, ativo = $7 WHERE id = $8 RETURNING id, nome, email, tipo, regiao, regioes_responsavel, gerente_responsavel_id, ativo`,
+            [nome, email, tipo, regiao, regioes_responsavel, gerente_responsavel_id, ativo, id]
+        );
+        client.release();
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado." });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar usuário:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao atualizar usuário." });
+    }
+});
+
+// DELETE /api/usuarios/:id - Deletar usuário (apenas para admin)
+app.delete("/api/usuarios/:id", authenticateToken, requireAdmin, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const client = await pool.connect();
+        const { rowCount } = await client.query(`DELETE FROM usuarios WHERE id = $1`, [id]);
+        client.release();
+        if (rowCount === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado." });
+        }
+        res.status(204).send(); // No Content
+    } catch (err) {
+        console.error("Erro ao deletar usuário:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao deletar usuário." });
+    }
+});
+
+// --- Rotas de Demandas ---
 
 // GET /api/demandas - Retorna demandas
 app.get("/api/demandas", authenticateToken, async (req, res) => {
@@ -422,42 +485,7 @@ app.get("/api/demandas", authenticateToken, async (req, res) => {
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error("Erro na rota de login:", err);
-        res.status(500).json({ error: "Erro interno do servidor" });
-    }
-});
-
-// GET /api/usuarios - Retorna todos os usuários (apenas para admin)
-app.get("/api/usuarios", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-        const client = await pool.connect();
-        const { rows } = await client.query(`SELECT id, nome, email, tipo, regiao, regioes_responsavel, ativo FROM usuarios ORDER BY nome`);
-        client.release();
-        res.json(rows);
-    } catch (err) {
-        console.error("Erro na rota de login:", err);
-        res.status(500).json({ error: "Erro interno do servidor" });
-    }
-});
-
-// GET /api/usuarios/captadores - Retorna apenas captadores (para gerentes regionais)
-app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegional, async (req, res) => {
-    let query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = 'captador' ORDER BY nome`;
-    let params = [];
-
-    if (req.user.tipo === "gerente_regional") {
-        const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
-        query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = 'captador' AND regiao IN (${placeholders}) ORDER BY nome`;
-        params = req.regioesPermitidas;
-    }
-
-    try {
-        const client = await pool.connect();
-        const { rows } = await client.query(query, params);
-        client.release();
-        res.json(rows);
-    } catch (err) {
-        console.error("Erro na rota de login:", err);
+        console.error("Erro ao obter demandas:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
@@ -485,8 +513,37 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
         client.release();
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error("Erro na rota de login:", err);
+        console.error("Erro ao adicionar demanda:", err);
         res.status(500).json({ error: "Erro interno do servidor ao adicionar demanda." });
+    }
+});
+
+// --- Rotas de Missões ---
+
+// GET /api/missoes - Retorna missões (filtradas por captador ou gerente regional)
+app.get("/api/missoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    try {
+        const client = await pool.connect();
+        let query = `SELECT m.*, d.regiao_demanda FROM missoes m JOIN demandas d ON m.demanda_id = d.id`;
+        let params = [];
+
+        if (req.user.tipo === "gerente_regional") {
+            const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
+            query += ` WHERE d.regiao_demanda IN (${placeholders})`;
+            params = req.regioesPermitidas;
+        } else if (req.user.tipo === "captador") {
+            query += ` WHERE m.captador_id = $1`;
+            params = [req.user.id];
+        }
+
+        query += ` ORDER BY m.data_missao DESC`;
+
+        const { rows } = await client.query(query, params);
+        client.release();
+        res.json(rows);
+    } catch (err) {
+        console.error("Erro ao obter missões:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
 
@@ -500,29 +557,49 @@ app.post("/api/missoes", authenticateToken, verificarPermissaoRegional, async (r
 
     try {
         const client = await pool.connect();
-        // Verificar a região da demanda associada para permissão
-        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demanda_id]);
-        if (demandaRows.length === 0) {
-            client.release();
-            return res.status(404).json({ error: "Demanda não encontrada." });
-        }
-        const regiaoDemanda = demandaRows[0].regiao_demanda;
-
-        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
-            client.release();
-            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para adicionar missões para demandas nesta região." });
-        }
-
         const { rows } = await client.query(
             `INSERT INTO missoes (demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status, criado_por_id)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status || "Em busca", req.user.id]
+            [demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status, req.user.id]
         );
         client.release();
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error("Erro na rota de login:", err);
+        console.error("Erro ao adicionar missão:", err);
         res.status(500).json({ error: "Erro interno do servidor ao adicionar missão." });
+    }
+});
+
+// GET /api/missoes/:id - Retorna uma missão específica
+app.get("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const client = await pool.connect();
+        const { rows } = await client.query("SELECT m.*, d.regiao_demanda FROM missoes m JOIN demandas d ON m.demanda_id = d.id WHERE m.id = $1", [id]);
+        client.release();
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+
+        const missao = rows[0];
+        const regiaoDemanda = missao.regiao_demanda;
+
+        // Verificar permissão regional
+        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para visualizar missões para demandas nesta região." });
+        }
+
+        // Verificar permissão para captador
+        if (req.user.tipo === "captador" && missao.captador_id !== req.user.id) {
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para visualizar esta missão." });
+        }
+
+        res.json(missao);
+    } catch (err) {
+        console.error("Erro ao obter missão específica:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
 
@@ -537,11 +614,17 @@ app.put("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async
 
     try {
         const client = await pool.connect();
-        // Verificar a região da demanda associada para permissão
-        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demanda_id]);
+        const { rows: missaoRows } = await client.query("SELECT demanda_id FROM missoes WHERE id = $1", [id]);
+        if (missaoRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        const demandaId = missaoRows[0].demanda_id;
+
+        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demandaId]);
         if (demandaRows.length === 0) {
             client.release();
-            return res.status(404).json({ error: "Demanda não encontrada." });
+            return res.status(404).json({ error: "Demanda associada não encontrada." });
         }
         const regiaoDemanda = demandaRows[0].regiao_demanda;
 
@@ -565,109 +648,12 @@ app.put("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async
             [demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status, data_retorno, id]
         );
         client.release();
-
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "Missão não encontrada." });
-        }
         res.json(rows[0]);
     } catch (err) {
-        console.error("Erro na rota de login:", err);
+        console.error("Erro ao atualizar missão:", err);
         res.status(500).json({ error: "Erro interno do servidor ao atualizar missão." });
     }
 });
-
-// DELETE /api/missoes/:id - Excluir missão
-app.delete("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const client = await pool.connect();
-        // Antes de excluir, verificar a região da demanda associada para permissão
-        const { rows: missaoRows } = await client.query("SELECT demanda_id FROM missoes WHERE id = $1", [id]);
-        if (missaoRows.length === 0) {
-            client.release();
-            return res.status(404).json({ error: "Missão não encontrada." });
-        }
-        const demandaId = missaoRows[0].demanda_id;
-
-        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demandaId]);
-        if (demandaRows.length === 0) {
-            client.release();
-            return res.status(404).json({ error: "Demanda associada não encontrada." });
-        }
-        const regiaoDemanda = demandaRows[0].regiao_demanda;
-
-        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
-            client.release();
-            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para excluir missões para demandas nesta região." });
-        }
-
-        await client.query("DELETE FROM interacoes WHERE missao_id = $1", [id]); // Excluir interações primeiro
-        const { rowCount } = await client.query("DELETE FROM missoes WHERE id = $1", [id]);
-        client.release();
-
-        if (rowCount === 0) {
-            return res.status(404).json({ error: "Missão não encontrada." });
-        }
-        res.status(204).send();
-    } catch (err) {
-        console.error("Erro na rota de login:", err);
-        res.status(500).json({ error: "Erro interno do servidor ao excluir missão." });
-    }
-});
-
-// POST /api/interacoes - Adicionar nova interação
-app.post("/api/interacoes", authenticateToken, async (req, res) => {
-    const { missao_id, descricao } = req.body;
-
-    if (!missao_id || !descricao) {
-        return res.status(400).json({ error: "Missão ID e descrição são obrigatórios." });
-    }
-
-    try {
-        const client = await pool.connect();
-        const { rows } = await client.query(
-            `INSERT INTO interacoes (missao_id, usuario_id, usuario_nome, descricao) VALUES ($1, $2, $3, $4) RETURNING *`,
-            [missao_id, req.user.id, req.user.nome, descricao]
-        );
-        client.release();
-        res.status(201).json(rows[0]);
-    } catch (err) {
-        console.error("Erro na rota de login:", err);
-        res.status(500).json({ error: "Erro interno do servidor ao adicionar interação." });
-    }
-});
-
-// GET /api/interacoes/:missao_id - Obter interações de uma missão
-app.get("/api/interacoes/:missao_id", authenticateToken, async (req, res) => {
-    const { missao_id } = req.params;
-
-    if (!missao_id) {
-        return res.status(400).json({ error: "Missão ID é obrigatório." });
-    }
-
-    try {
-        const client = await pool.connect();
-        const { rows } = await client.query("SELECT * FROM interacoes WHERE missao_id = $1 ORDER BY data_interacao DESC", [missao_id]);
-        client.release();
-        res.json(rows);
-    } catch (err) {
-        console.error("Erro na rota de login:", err);
-        res.status(500).json({ error: "Erro interno do servidor" });
-    }
-});
-
-// Inicia a conexão com o DB e o servidor Express
-initializeDb().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Servidor rodando na porta ${PORT} com autenticação e relatórios multi-regionais`);
-    });
-}).catch(err => {
-    console.error("Falha ao iniciar o servidor:", err);
-    process.exit(1);
-});
-
-
 
 // PUT /api/missoes/:id/status - Atualizar status da missão
 app.put("/api/missoes/:id/status", authenticateToken, verificarPermissaoRegional, async (req, res) => {
@@ -714,10 +700,6 @@ app.put("/api/missoes/:id/status", authenticateToken, verificarPermissaoRegional
             [status, id]
         );
         client.release();
-
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "Missão não encontrada." });
-        }
         res.json(rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar status da missão:", err);
@@ -725,57 +707,237 @@ app.put("/api/missoes/:id/status", authenticateToken, verificarPermissaoRegional
     }
 });
 
-// GET /api/missoes/:missao_id/interacoes - Obter interações de uma missão
-app.get("/api/missoes/:missao_id/interacoes", authenticateToken, async (req, res) => {
-    const { missao_id } = req.params;
-
-    if (!missao_id) {
-        return res.status(400).json({ error: "Missão ID é obrigatório." });
-    }
-
-    try {
-        const client = await pool.connect();
-        const { rows } = await client.query("SELECT * FROM interacoes WHERE missao_id = $1 ORDER BY data_interacao DESC", [missao_id]);
-        client.release();
-        res.json(rows);
-    } catch (err) {
-        console.error("Erro ao obter interações da missão:", err);
-        res.status(500).json({ error: "Erro interno do servidor" });
-    }
-});
-
-// GET /api/relatorios/performance-captadores/:id - Rota de placeholder
-app.get("/api/relatorios/performance-captadores/:id", authenticateToken, (req, res) => {
-    res.status(200).json({ message: "Rota de performance de captadores em desenvolvimento." });
-});
-
-// GET /api/relatorios/dashboard/:id - Rota de placeholder
-app.get("/api/relatorios/dashboard/:id", authenticateToken, (req, res) => {
-    res.status(200).json({ message: "Rota de dashboard em desenvolvimento." });
-});
-
-// GET /api/demandas/:id - Obter uma demanda específica
-app.get("/api/demandas/:id", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+// DELETE /api/missoes/:id - Deletar missão
+app.delete("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async (req, res) => {
     const { id } = req.params;
 
     try {
         const client = await pool.connect();
-        const { rows } = await client.query("SELECT * FROM demandas WHERE id = $1", [id]);
-        const demanda = rows[0];
+        const { rows: missaoRows } = await client.query("SELECT demanda_id FROM missoes WHERE id = $1", [id]);
+        if (missaoRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        const demandaId = missaoRows[0].demanda_id;
+
+        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demandaId]);
+        if (demandaRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Demanda associada não encontrada." });
+        }
+        const regiaoDemanda = demandaRows[0].regiao_demanda;
+
+        // Gerente regional pode deletar missões em suas regiões
+        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para deletar missões para demandas nesta região." });
+        }
+
+        // Captador não pode deletar missões
+        if (req.user.tipo === "captador") {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado. Captadores não podem deletar missões." });
+        }
+
+        const { rowCount } = await client.query(`DELETE FROM missoes WHERE id = $1`, [id]);
         client.release();
-
-        if (!demanda) {
-            return res.status(404).json({ error: "Demanda não encontrada." });
+        if (rowCount === 0) {
+            return res.status(404).json({ error: "Missão não encontrada." });
         }
-
-        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(demanda.regiao_demanda)) {
-            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para ver demandas desta região." });
-        }
-
-        res.json(demanda);
+        res.status(204).send(); // No Content
     } catch (err) {
-        console.error("Erro ao obter demanda:", err);
-        res.status(500).json({ error: "Erro interno do servidor" });
+        console.error("Erro ao deletar missão:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao deletar missão." });
     }
 });
 
+// --- Rotas de Interações ---
+
+// POST /api/missoes/:missao_id/interacoes - Adicionar nova interação a uma missão
+app.post("/api/missoes/:missao_id/interacoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const { missao_id } = req.params;
+    const { descricao } = req.body;
+
+    if (!descricao) {
+        return res.status(400).json({ error: "A descrição da interação é obrigatória." });
+    }
+
+    try {
+        const client = await pool.connect();
+        const { rows: missaoRows } = await client.query("SELECT demanda_id, captador_id FROM missoes WHERE id = $1", [missao_id]);
+        if (missaoRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        const demandaId = missaoRows[0].demanda_id;
+        const captadorIdMissao = missaoRows[0].captador_id;
+
+        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demandaId]);
+        if (demandaRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Demanda associada não encontrada." });
+        }
+        const regiaoDemanda = demandaRows[0].regiao_demanda;
+
+        // Gerente regional pode adicionar interações em suas regiões
+        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para adicionar interações para demandas nesta região." });
+        }
+
+        // Captador pode adicionar interações apenas em suas próprias missões
+        if (req.user.tipo === "captador" && captadorIdMissao !== req.user.id) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para adicionar interações nesta missão." });
+        }
+
+        const { rows } = await client.query(
+            `INSERT INTO interacoes (missao_id, usuario_id, usuario_nome, descricao)
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [missao_id, req.user.id, req.user.nome, descricao]
+        );
+        client.release();
+        res.status(201).json(rows[0]);
+    } catch (err) {
+        console.error("Erro ao adicionar interação:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao adicionar interação." });
+    }
+});
+
+// GET /api/missoes/:missao_id/interacoes - Obter interações de uma missão
+app.get("/api/missoes/:missao_id/interacoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const { missao_id } = req.params;
+
+    try {
+        const client = await pool.connect();
+        const { rows: missaoRows } = await client.query("SELECT demanda_id, captador_id FROM missoes WHERE id = $1", [missao_id]);
+        if (missaoRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        const demandaId = missaoRows[0].demanda_id;
+        const captadorIdMissao = missaoRows[0].captador_id;
+
+        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [demandaId]);
+        if (demandaRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Demanda associada não encontrada." });
+        }
+        const regiaoDemanda = demandaRows[0].regiao_demanda;
+
+        // Gerente regional pode ver interações em suas regiões
+        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para visualizar interações para demandas nesta região." });
+        }
+
+        // Captador pode ver interações apenas em suas próprias missões
+        if (req.user.tipo === "captador" && captadorIdMissao !== req.user.id) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado. Você não tem permissão para visualizar interações nesta missão." });
+        }
+
+        const { rows } = await client.query(
+            `SELECT * FROM interacoes WHERE missao_id = $1 ORDER BY data_interacao DESC`,
+            [missao_id]
+        );
+        client.release();
+        res.json(rows);
+    } catch (err) {
+        console.error("Erro ao obter interações:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao obter interações." });
+    }
+});
+
+// --- Rotas de Relatórios ---
+
+// GET /api/relatorios/performance-captadores - Retorna relatório de performance de captadores
+app.get("/api/relatorios/performance-captadores", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    try {
+        const client = await pool.connect();
+        let query = `
+            SELECT
+                u.nome AS captador_nome,
+                u.regiao AS captador_regiao,
+                COUNT(m.id) AS total_missoes,
+                COUNT(CASE WHEN m.status = \'Locado\' THEN 1 END) AS missoes_locadas,
+                COUNT(CASE WHEN m.status = \'Em busca\' THEN 1 END) AS missoes_em_busca,
+                COUNT(CASE WHEN m.status = \'Encontrado\' THEN 1 END) AS missoes_encontradas
+            FROM
+                usuarios u
+            LEFT JOIN
+                missoes m ON u.id = m.captador_id
+            WHERE
+                u.tipo = \'captador\'
+        `;
+        let params = [];
+
+        if (req.user.tipo === "gerente_regional") {
+            const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
+            query += ` AND u.regiao IN (${placeholders})`;
+            params = req.regioesPermitidas;
+        } else if (req.user.tipo === "captador") {
+            query += ` AND u.id = $${params.length + 1}`;
+            params.push(req.user.id);
+        }
+
+        query += ` GROUP BY u.id, u.nome, u.regiao ORDER BY u.nome`;
+
+        const { rows } = await client.query(query, params);
+        client.release();
+        res.json(rows);
+    } catch (err) {
+        console.error("Erro ao gerar relatório de performance de captadores:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao gerar relatório de performance de captadores." });
+    }
+});
+
+// GET /api/relatorios/dashboard - Retorna dados para o dashboard
+app.get("/api/relatorios/dashboard", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    try {
+        const client = await pool.connect();
+        let missoesQuery = `SELECT status, COUNT(*) FROM missoes`;
+        let demandasQuery = `SELECT COUNT(*) FROM demandas`;
+        let missoesParams = [];
+        let demandasParams = [];
+
+        if (req.user.tipo === "gerente_regional") {
+            const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
+            missoesQuery += ` JOIN demandas d ON missoes.demanda_id = d.id WHERE d.regiao_demanda IN (${placeholders})`;
+            demandasQuery += ` WHERE regiao_demanda IN (${placeholders})`;
+            missoesParams = req.regioesPermitidas;
+            demandasParams = req.regioesPermitidas;
+        } else if (req.user.tipo === "captador") {
+            missoesQuery += ` WHERE captador_id = $1`;
+            demandasQuery += ` WHERE criado_por_id = $1`; // Assumindo que captador só vê demandas que ele criou
+            missoesParams = [req.user.id];
+            demandasParams = [req.user.id];
+        }
+
+        missoesQuery += ` GROUP BY status`;
+
+        const { rows: missoesStatus } = await client.query(missoesQuery, missoesParams);
+        const { rows: totalDemandas } = await client.query(demandasQuery, demandasParams);
+        
+        client.release();
+
+        res.json({
+            missoesStatus: missoesStatus.reduce((acc, curr) => ({ ...acc, [curr.status]: parseInt(curr.count) }), {}),
+            totalDemandas: parseInt(totalDemandas[0] ? totalDemandas[0].count : 0)
+        });
+
+    } catch (err) {
+        console.error("Erro ao obter dados do dashboard:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao obter dados do dashboard." });
+    }
+});
+
+// --- Inicialização do Servidor ---
+initializeDb().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Servidor rodando na porta ${PORT}`);
+    });
+}).catch(err => {
+    console.error("Falha ao iniciar o servidor:", err);
+    process.exit(1);
+});
