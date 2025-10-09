@@ -250,12 +250,13 @@ app.use(session({
 }));
 
 // Serve arquivos estáticos (se houver um frontend)
-app.use(express.static(path.join(__dirname)));
+// Serve arquivos estáticos (se houver um frontend)
+// app.use(express.static(path.join(__dirname)));
 
 // Rota para servir o arquivo HTML principal para todas as outras requisições
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'imovel_certo_app.html'));
-});
+// app.get('*', (req, res) => {
+//     res.sendFile(path.join(__dirname, 'imovel_certo_app.html'));
+// });
 
 // --- Middleware de Autenticação ---
 const authenticateToken = (req, res, next) => {
@@ -770,3 +771,12 @@ app.get("/api/demandas/:id", authenticateToken, verificarPermissaoRegional, asyn
     }
 });
 
+
+
+// Serve arquivos estáticos (se houver um frontend)
+app.use(express.static(path.join(__dirname)));
+
+// Rota para servir o arquivo HTML principal para todas as outras requisições (DEVE SER A ÚLTIMA ROTA)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'imovel_certo_app.html'));
+});
