@@ -507,12 +507,7 @@ text = ""
 
 
     // Validar permissão regional para a demanda
-    if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiao_demanda)) {
-        return res.status(403).json({ error: "Acesso negado. Você não tem permissão para adicionar demandas nesta região." });
-    }
-
-    // Validar permissão regional para a demanda
-    if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiao_demanda)) {
+        if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(mappedBody.regiao_demanda)) {
         return res.status(403).json({ error: "Acesso negado. Você não tem permissão para adicionar demandas nesta região." });
     }
 
