@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 // Chave secreta para JWT (em produção, use uma variável de ambiente)
-const JWT_SECRET = process.env.JWT_SECRET || "sua_chave_secreta_muito_segura_aqui";
+const JWT_SECRET = process.env.JWT_SECRET || "54b6e598690caa0049c1b61f8b527a91c97eca53b7558fe7";
 
 async function initializeDb() {
     let client; // Declare client here to ensure it\\\\'s always defined
@@ -169,15 +169,13 @@ async function initializeDb() {
             ];
             
             const captadoresBalnearioCamboriu = [
-                ["Michele Oliveira", "michele@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Balneario_Camboriu"]
+                ["Carlos Santos", "carlos@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Ana Costa", "ana@adimimoveis.com.br", "Balneario_Camboriu"],
             ];
 
             const captadoresItajai = [
-                ["Michele Oliveira", "michele@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Balneario_Camboriu"]
+                ["Roberto Lima", "roberto@adimimoveis.com.br", "Itajai"],
+                ["Fernanda Oliveira", "fernanda@adimimoveis.com.br", "Itajai"],
             ];
             
             const todosCaptadores = [...captadoresItapema, ...captadoresBalnearioCamboriu, ...captadoresItajai];
@@ -379,33 +377,28 @@ app.get("/api/me", authenticateToken, (req, res) => {
 });
 
 // GET /api/missoes - Retorna missões (filtradas por captador se não for gerente)
-app.get("/api/missoes", authenticateToken, async (req, res) => {
-    let query = `SELECT * FROM missoes ORDER BY data_missao DESC`;
-    let params = [];
-    
-    // Se for captador, mostrar apenas as missões do próprio captador
-    if (req.user.tipo === "captador") {
-        query = `SELECT * FROM missoes WHERE captador_id = $1 ORDER BY data_missao DESC`;
-        params = [req.user.id];
-    }
-    // Se for gerente regional, mostrar apenas missões das suas regiões
-    else if (req.user.tipo === "gerente_regional") {
-        const regioes = req.user.regioes_responsavel ? req.user.regioes_responsavel.split(",") : [req.user.regiao];
-        const placeholders = regioes.map((_, i) => `$${i + 1}`).join(",");
-        query = `SELECT m.* FROM missoes m 
-                 LEFT JOIN demandas d ON m.codigo_demanda = d.codigo_demanda 
-                 WHERE d.regiao_demanda IN (${placeholders}) OR d.regiao_demanda IS NULL
-                 ORDER BY m.data_missao DESC`;
-        params = regioes;
-    }
-    
+app.get("/api/missoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
     try {
         const client = await pool.connect();
+        let query = `SELECT m.*, d.regiao_demanda FROM missoes m JOIN demandas d ON m.demanda_id = d.id`;
+        let params = [];
+
+        if (req.user.tipo === "gerente_regional") {
+            const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
+            query += ` WHERE d.regiao_demanda IN (${placeholders})`;
+            params = req.regioesPermitidas;
+        } else if (req.user.tipo === "captador") {
+            query += ` WHERE m.captador_id = $1`;
+            params = [req.user.id];
+        }
+
+        query += ` ORDER BY m.data_missao DESC`;
+
         const { rows } = await client.query(query, params);
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error("Erro na rota de login:", err);
+        console.error("Erro ao obter missões:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
@@ -552,9 +545,19 @@ app.put("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async
         }
         const regiaoDemanda = demandaRows[0].regiao_demanda;
 
+        // Gerente regional pode atualizar missões em suas regiões
         if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
             client.release();
             return res.status(403).json({ error: "Acesso negado. Você não tem permissão para atualizar missões para demandas nesta região." });
+        }
+
+        // Captador pode atualizar o status de suas próprias missões
+        if (req.user.tipo === "captador") {
+            const { rows: captadorMissaoRows } = await client.query("SELECT captador_id FROM missoes WHERE id = $1", [id]);
+            if (captadorMissaoRows.length === 0 || captadorMissaoRows[0].captador_id !== req.user.id) {
+                client.release();
+                return res.status(403).json({ error: "Acesso negado. Você não tem permissão para atualizar esta missão." });
+            }
         }
 
         const { rows } = await client.query(
@@ -691,9 +694,19 @@ app.put("/api/missoes/:id/status", authenticateToken, verificarPermissaoRegional
         }
         const regiaoDemanda = demandaRows[0].regiao_demanda;
 
+        // Gerente regional pode atualizar missões em suas regiões
         if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiaoDemanda)) {
             client.release();
             return res.status(403).json({ error: "Acesso negado. Você não tem permissão para atualizar missões para demandas nesta região." });
+        }
+
+        // Captador pode atualizar o status de suas próprias missões
+        if (req.user.tipo === "captador") {
+            const { rows: captadorMissaoRows } = await client.query("SELECT captador_id FROM missoes WHERE id = $1", [id]);
+            if (captadorMissaoRows.length === 0 || captadorMissaoRows[0].captador_id !== req.user.id) {
+                client.release();
+                return res.status(403).json({ error: "Acesso negado. Você não tem permissão para atualizar esta missão." });
+            }
         }
 
         const { rows } = await client.query(
