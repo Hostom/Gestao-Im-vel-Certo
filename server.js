@@ -11,7 +11,7 @@ const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 // Chave secreta para JWT (em produção, use uma variável de ambiente)
-const JWT_SECRET = 'sua_chave_secreta_muito_segura_aqui';
+const JWT_SECRET = '54b6e598690caa0049c1b61f8b527a91c97eca53b7558fe7';
 
 // Criar tabelas se não existirem
 db.serialize(() => {
