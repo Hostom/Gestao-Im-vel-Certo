@@ -419,7 +419,8 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
         faixa_aluguel: faixaAluguel,
         caracteristicas_desejadas: caracteristicasDesejadas,
         prazo_necessidade: prazoNecessidade,
-        observacoes: observacoes
+        observacoes: observacoes,
+        criado_por_id: req.user.id
     };
 
     // Validação básica
@@ -451,8 +452,8 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
                 mapped.caracteristicas_desejadas,
                 mapped.prazo_necessidade,
                 mapped.observacoes,
-                req.user.id
-             ]
+                mapped.criado_por_id
+            ]
         );
         client.release();
         res.status(201).json(rows[0]);
@@ -492,8 +493,8 @@ app.post("/api/missoes", authenticateToken, verificarPermissaoRegional, async (r
         client.release();
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error("Erro ao inserir missão:", err);
-        res.status(500).json({ error: "Erro interno do servidor ao adicionar missão." });
+        console.error("Erro ao adicionar demanda:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao adicionar demanda: " + err.message });
     }
 });
 
