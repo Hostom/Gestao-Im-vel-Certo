@@ -150,18 +150,6 @@ db.serialize(() => {
                 db.run(`INSERT INTO usuarios (nome, email, senha, tipo, regiao) VALUES (?, ?, ?, ?, ?)`, 
                        [captador[0], captador[1], senhaHash, 'captador', captador[2]]);
             });
-
-            // Inserir configurações regionais
-            const configuracoes = [
-                ['Itapema', '{"permissoes": ["gerenciar_captadores", "gerar_relatorios"], "restricoes": ["apenas_regiao_propria"]}'],
-                ['Balneario_Camboriu', '{"permissoes": ["gerenciar_captadores", "gerar_relatorios"], "restricoes": ["multiplas_regioes"]}'],
-                ['Itajai', '{"permissoes": ["gerenciar_captadores", "gerar_relatorios"], "restricoes": ["multiplas_regioes"]}'],
-                ['Geral', '{"permissoes": ["acesso_total"], "restricoes": []}']
-            ];
-            
-            configuracoes.forEach(config => {
-                db.run(`INSERT INTO configuracoes_regionais (regiao, configuracoes) VALUES (?, ?)`, config);
-            });
         }
     });
 
