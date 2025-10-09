@@ -13,7 +13,3 @@
     }
   ]
 }
-git add vercel.json server.js
-git commit -m "Configurado para Vercel com PostgreSQL e corrigido lógica de inicialização de usuários."
-git pull origin main --rebase
-git push origin main
