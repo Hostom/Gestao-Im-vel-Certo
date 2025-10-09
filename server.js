@@ -1,16 +1,16 @@
 const express = require("express");
 const cors = require("cors");
-const { Pool } = require("pg"); // Importa o Pool do pg
+const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const session = require("express-session");
 
 // --- Configuração do Banco de Dados PostgreSQL ---
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres:fYZxeVNPdHvLVLGSLeVtusXSUGbyjDbi@postgres.railway.internal:5432/railway";
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres:fYZxeVNPdHvLVLGSLeVtusXSUGbyjDbi@shortline.proxy.rlwy.net:25100/railway";
 const pool = new Pool({
     connectionString: DATABASE_URL,
     ssl: {
-        rejectUnauthorized: false // Necessário para Railway, dependendo da configuração
+        rejectUnauthorized: false
     }
 });
 
@@ -18,25 +18,43 @@ const pool = new Pool({
 const JWT_SECRET = process.env.JWT_SECRET || "sua_chave_secreta_muito_segura_aqui";
 
 async function initializeDb() {
+    let client; // Declare client here to ensure it's always defined
     try {
-        // Conectar ao banco de dados
-        const client = await pool.connect();
+        client = await pool.connect();
         console.log("Conectado ao PostgreSQL!");
 
-        // Criar tabelas se não existirem (adaptado para PostgreSQL)
+        // Criar/Atualizar tabelas (adaptado para PostgreSQL com ALTER TABLE)
         await client.query(`
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
                 nome TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 senha TEXT NOT NULL,
-                tipo TEXT NOT NULL CHECK (tipo IN (\'admin\', \'gerente_regional\', \'captador\')),
-                regiao TEXT DEFAULT \'Geral\',
+                tipo TEXT NOT NULL CHECK (tipo IN (\"admin\", \"gerente_regional\", \"captador\")),
+                regiao TEXT DEFAULT \"Geral\",
                 regioes_responsavel TEXT,
                 gerente_responsavel_id INTEGER REFERENCES usuarios(id),
                 ativo BOOLEAN DEFAULT TRUE,
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            -- Adicionar colunas se não existirem
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'regioes_responsavel\') THEN
+                    ALTER TABLE usuarios ADD COLUMN regioes_responsavel TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'gerente_responsavel_id\') THEN
+                    ALTER TABLE usuarios ADD COLUMN gerente_responsavel_id INTEGER REFERENCES usuarios(id);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'ativo\') THEN
+                    ALTER TABLE usuarios ADD COLUMN ativo BOOLEAN DEFAULT TRUE;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'data_criacao\') THEN
+                    ALTER TABLE usuarios ADD COLUMN data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                END IF;
+            END
+            $$;
 
             CREATE TABLE IF NOT EXISTS demandas (
                 id SERIAL PRIMARY KEY,
@@ -46,7 +64,7 @@ async function initializeDb() {
                 contato TEXT NOT NULL,
                 tipo_imovel TEXT NOT NULL,
                 regiao_desejada TEXT NOT NULL,
-                regiao_demanda TEXT DEFAULT \'Geral\',
+                regiao_demanda TEXT DEFAULT \"Geral\",
                 faixa_aluguel TEXT NOT NULL,
                 caracteristicas_desejadas TEXT,
                 prazo_necessidade TEXT NOT NULL,
@@ -54,6 +72,17 @@ async function initializeDb() {
                 criado_por_id INTEGER REFERENCES usuarios(id),
                 data_solicitacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'demandas\' AND column_name=\'regiao_demanda\') THEN
+                    ALTER TABLE demandas ADD COLUMN regiao_demanda TEXT DEFAULT \'Geral\';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'demandas\' AND column_name=\'criado_por_id\') THEN
+                    ALTER TABLE demandas ADD COLUMN criado_por_id INTEGER REFERENCES usuarios(id);
+                END IF;
+            END
+            $$;
 
             CREATE TABLE IF NOT EXISTS missoes (
                 id SERIAL PRIMARY KEY,
@@ -64,11 +93,22 @@ async function initializeDb() {
                 consultor_solicitante TEXT NOT NULL,
                 regiao_bairro TEXT NOT NULL,
                 descricao_busca TEXT NOT NULL,
-                status TEXT DEFAULT \'Em busca\' CHECK (status IN (\'Em busca\', \'Encontrado\', \'Locado\')),
+                status TEXT DEFAULT \"Em busca\" CHECK (status IN (\"Em busca\", \"Encontrado\", \"Locado\")),
                 data_missao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 data_retorno TIMESTAMP,
                 criado_por_id INTEGER REFERENCES usuarios(id)
             );
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'missoes\' AND column_name=\'captador_id\') THEN
+                    ALTER TABLE missoes ADD COLUMN captador_id INTEGER REFERENCES usuarios(id);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'missoes\' AND column_name=\'criado_por_id\') THEN
+                    ALTER TABLE missoes ADD COLUMN criado_por_id INTEGER REFERENCES usuarios(id);
+                END IF;
+            END
+            $$;
 
             CREATE TABLE IF NOT EXISTS interacoes (
                 id SERIAL PRIMARY KEY,
@@ -82,7 +122,7 @@ async function initializeDb() {
             CREATE TABLE IF NOT EXISTS relatorios (
                 id SERIAL PRIMARY KEY,
                 titulo TEXT NOT NULL,
-                tipo TEXT NOT NULL CHECK (tipo IN (\'demandas\', \'missoes\', \'performance\', \'geral\')),
+                tipo TEXT NOT NULL CHECK (tipo IN (\"demandas\", \"missoes\", \"performance\", \"geral\")),
                 filtros TEXT,
                 gerado_por_id INTEGER REFERENCES usuarios(id),
                 regiao TEXT,
@@ -107,7 +147,7 @@ async function initializeDb() {
             CREATE INDEX IF NOT EXISTS idx_missoes_captador ON missoes(captador_id);
             CREATE INDEX IF NOT EXISTS idx_relatorios_regiao ON relatorios(regiao);
         `);
-        console.log("Tabelas verificadas/criadas no PostgreSQL.");
+        console.log("Tabelas verificadas/criadas/atualizadas no PostgreSQL.");
 
         // Inserir usuários padrão se a tabela estiver vazia
         const { rows: userCount } = await client.query("SELECT COUNT(*) as count FROM usuarios");
@@ -124,22 +164,18 @@ async function initializeDb() {
             await client.query(`INSERT INTO usuarios (nome, email, senha, tipo, regiao, regioes_responsavel) VALUES ($1, $2, $3, $4, $5, $6)`, 
                    ["Lidiane Silva", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"]);
             
-            // Usuários captadores de Itapema
             const captadoresItapema = [
-                ['Jenifer de Souza', 'jenifer@adimimoveis.com.br', 'Itapema'],
+                ["Jenifer de Souza", "jenifer@adimimoveis.com.br", "Itapema"],
             ];
             
-            // Captadores de Balneário Camboriú e Itajaí
-            const captadoresBC = [
-                ['Michele Oliveira', 'michele@adimimoveis.com.br', 'Balneario_Camboriu'],
-                ['Morgana Barreto', 'mrogana@adimimoveis.com.br', 'Balneario_Camboriu'],
-                ['Bruna Spinello', 'brunaspinello@crimoveis.com.br', 'Balneario_Camboriu'],
+            const captadoresBalnearioCamboriu = [
+                ["Carlos Santos", "carlos@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Ana Costa", "ana@adimimoveis.com.br", "Balneario_Camboriu"],
             ];
 
-             const captadoresItajai = [
-                ['Michele Oliveira', 'michele@adimimoveis.com.br', 'Itajai'],
-                ['Morgana Barreto', 'mrogana@adimimoveis.com.br', 'Itajai'],
-                ['Bruna Spinello', 'brunaspinello@crimoveis.com.br', 'Itajai'],
+            const captadoresItajai = [
+                ["Roberto Lima", "roberto@adimimoveis.com.br", "Itajai"],
+                ["Fernanda Oliveira", "fernanda@adimimoveis.com.br", "Itajai"],
             ];
             
             const todosCaptadores = [...captadoresItapema, ...captadoresBalnearioCamboriu, ...captadoresItajai];
@@ -189,7 +225,9 @@ async function initializeDb() {
     } catch (err) {
         console.error("Erro na inicialização do banco de dados PostgreSQL:", err);
     } finally {
-        client.release(); // Libera o cliente de volta para o pool
+        if (client) {
+            client.release(); // Libera o cliente de volta para o pool apenas se estiver definido
+        }
     }
 }
 
@@ -409,12 +447,12 @@ app.get("/api/usuarios", authenticateToken, requireAdmin, async (req, res) => {
 
 // GET /api/usuarios/captadores - Retorna apenas captadores (para gerentes regionais)
 app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegional, async (req, res) => {
-    let query = "SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \'captador\' ORDER BY nome";
+    let query = "SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \"captador\" ORDER BY nome";
     let params = [];
 
     if (req.user.tipo === "gerente_regional") {
         const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
-        query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \'captador\' AND regiao IN (${placeholders}) ORDER BY nome`;
+        query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \"captador\" AND regiao IN (${placeholders}) ORDER BY nome`;
         params = req.regioesPermitidas;
     }
 
@@ -447,7 +485,7 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
         const { rows } = await client.query(
             `INSERT INTO demandas (codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, regiao_demanda, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, criado_por_id)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-            [codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, regiao_demanda, req.user.id]
+            [codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, regiao_demanda, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, req.user.id]
         );
         client.release();
         res.status(201).json(rows[0]);
@@ -598,6 +636,10 @@ app.post("/api/interacoes", authenticateToken, async (req, res) => {
 // GET /api/interacoes/:missao_id - Obter interações de uma missão
 app.get("/api/interacoes/:missao_id", authenticateToken, async (req, res) => {
     const { missao_id } = req.params;
+
+    if (!missao_id) {
+        return res.status(400).json({ error: "Missão ID é obrigatório." });
+    }
 
     try {
         const client = await pool.connect();
