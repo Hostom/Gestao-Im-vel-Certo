@@ -455,8 +455,41 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
                 mapped.criado_por_id
             ]
         );
+        const novaDemanda = rows[0];
+
+        // Lógica para criar uma missão automaticamente
+        // 1. Encontrar captadores na mesma região da demanda
+        const captadoresNaRegiao = await client.query(
+            `SELECT id, nome FROM usuarios WHERE tipo = 'captador' AND regiao = $1`,
+            [novaDemanda.regiao_demanda]
+        );
+
+        if (captadoresNaRegiao.rows.length > 0) {
+            // Atribuir ao primeiro captador encontrado na região (pode ser melhorado com lógica de round-robin ou carga)
+            const captadorAtribuido = captadoresNaRegiao.rows[0];
+
+            await client.query(
+                `INSERT INTO missoes (demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status, criado_por_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [
+                    novaDemanda.id,
+                    novaDemanda.codigo_demanda,
+                    captadorAtribuido.nome, // captador_responsavel
+                    captadorAtribuido.id,   // captador_id
+                    novaDemanda.consultor_locacao, // consultor_solicitante
+                    novaDemanda.regiao_desejada, // regiao_bairro (usando regiao_desejada da demanda)
+                    novaDemanda.caracteristicas_desejadas || 'N/A', // descricao_busca
+                    'Em busca',
+                    req.user.id
+                ]
+            );
+            console.log(`Missão criada para a demanda ${novaDemanda.codigo_demanda} e atribuída a ${captadorAtribuido.nome}.`);
+        } else {
+            console.log(`Nenhum captador encontrado para a região ${novaDemanda.regiao_demanda}. Missão não criada automaticamente.`);
+        }
+
         client.release();
-        res.status(201).json(rows[0]);
+        res.status(201).json(novaDemanda);
     } catch (err) {
         console.error("Erro ao inserir demanda:", err);
         res.status(500).json({ error: "Erro interno do servidor ao adicionar demanda." });
@@ -490,8 +523,41 @@ app.post("/api/missoes", authenticateToken, verificarPermissaoRegional, async (r
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
              [demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status || "Em busca", req.user.id]
         );
+        const novaDemanda = rows[0];
+
+        // Lógica para criar uma missão automaticamente
+        // 1. Encontrar captadores na mesma região da demanda
+        const captadoresNaRegiao = await client.query(
+            `SELECT id, nome FROM usuarios WHERE tipo = 'captador' AND regiao = $1`,
+            [novaDemanda.regiao_demanda]
+        );
+
+        if (captadoresNaRegiao.rows.length > 0) {
+            // Atribuir ao primeiro captador encontrado na região (pode ser melhorado com lógica de round-robin ou carga)
+            const captadorAtribuido = captadoresNaRegiao.rows[0];
+
+            await client.query(
+                `INSERT INTO missoes (demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status, criado_por_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [
+                    novaDemanda.id,
+                    novaDemanda.codigo_demanda,
+                    captadorAtribuido.nome, // captador_responsavel
+                    captadorAtribuido.id,   // captador_id
+                    novaDemanda.consultor_locacao, // consultor_solicitante
+                    novaDemanda.regiao_desejada, // regiao_bairro (usando regiao_desejada da demanda)
+                    novaDemanda.caracteristicas_desejadas || 'N/A', // descricao_busca
+                    'Em busca',
+                    req.user.id
+                ]
+            );
+            console.log(`Missão criada para a demanda ${novaDemanda.codigo_demanda} e atribuída a ${captadorAtribuido.nome}.`);
+        } else {
+            console.log(`Nenhum captador encontrado para a região ${novaDemanda.regiao_demanda}. Missão não criada automaticamente.`);
+        }
+
         client.release();
-        res.status(201).json(rows[0]);
+        res.status(201).json(novaDemanda);
     } catch (err) {
         console.error("Erro ao adicionar demanda:", err);
         res.status(500).json({ error: "Erro interno do servidor ao adicionar demanda: " + err.message });
