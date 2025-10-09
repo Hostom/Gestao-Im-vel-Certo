@@ -6,16 +6,16 @@ const jwt = require("jsonwebtoken");
 const session = require("express-session");
 
 // --- Configuração do Banco de Dados PostgreSQL ---
-const POSTGRES_URL = process.env.POSTGRES_URL; // Vercel fornece POSTGRES_URL
+const POSTGRES_URL = process.env.DATABASE_URLL; // Vercel fornece POSTGRES_URL
 const pool = new Pool({
-    connectionString: POSTGRES_URL,
+    connectionString: DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
     }
 });
 
 // Chave secreta para JWT (em produção, use uma variável de ambiente)
-const JWT_SECRET = process.env.JWT_SECRET || "sua_chave_secreta_muito_segura_aqui";
+const JWT_SECRET = process.env.JWT_SECRET || "54b6e598690caa0049c1b61f8b527a91c97eca53b7558fe7";
 
 async function initializeDb() {
     let client; // Declare client here to ensure it\\\\'s always defined
