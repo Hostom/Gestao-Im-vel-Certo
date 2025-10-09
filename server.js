@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const session = require("express-session");
 
 // --- Configuração do Banco de Dados PostgreSQL ---
-const POSTGRES_URL = process.env.DATABASE_URLL; // Vercel fornece POSTGRES_URL
+const DATABASE_URL = process.env.DATABASE_URL; // Railway fornece DATABASE_URL
 const pool = new Pool({
     connectionString: DATABASE_URL,
     ssl: {
@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 // Chave secreta para JWT (em produção, use uma variável de ambiente)
-const JWT_SECRET = process.env.JWT_SECRET || "54b6e598690caa0049c1b61f8b527a91c97eca53b7558fe7";
+const JWT_SECRET = process.env.JWT_SECRET || "sua_chave_secreta_muito_segura_aqui";
 
 async function initializeDb() {
     let client; // Declare client here to ensure it\\\\'s always defined
@@ -159,25 +159,23 @@ async function initializeDb() {
                    ["Administrador", "admin@adimimoveis.com.br", senhaHash, "admin", "Geral"]);
             
             await client.query(`INSERT INTO usuarios (nome, email, senha, tipo, regiao) VALUES ($1, $2, $3, $4, $5)`, 
-                   ["Pedro", "pedro@adimimoveis.com.br", senhaHash, "gerente_regional", "Itapema"]);
+                   ["Gerente Itapema", "pedro@adimimoveis.com.br", senhaHash, "gerente_regional", "Itapema"]);
             
             await client.query(`INSERT INTO usuarios (nome, email, senha, tipo, regiao, regioes_responsavel) VALUES ($1, $2, $3, $4, $5, $6)`, 
-                   ["Lidiane", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"]);
+                   ["Lidiane Silva", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"]);
             
             const captadoresItapema = [
                 ["Jenifer de Souza", "jenifer@adimimoveis.com.br", "Itapema"],
             ];
             
             const captadoresBalnearioCamboriu = [
-                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Michele Oliveira", "michele@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Balneario_Camboriu"],
+                ["Carlos Santos", "carlos@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Ana Costa", "ana@adimimoveis.com.br", "Balneario_Camboriu"],
             ];
 
             const captadoresItajai = [
-                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Itajai"],
-                ["Michele Oliveira", "michele@adimimoveis.com.br", "Itajai"],
-                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Itajai"],
+                ["Roberto Lima", "roberto@adimimoveis.com.br", "Itajai"],
+                ["Fernanda Oliveira", "fernanda@adimimoveis.com.br", "Itajai"],
             ];
             
             const todosCaptadores = [...captadoresItapema, ...captadoresBalnearioCamboriu, ...captadoresItajai];
@@ -355,7 +353,7 @@ app.post("/api/login", async (req, res) => {
             }
         });
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
@@ -405,7 +403,7 @@ app.get("/api/missoes", authenticateToken, async (req, res) => {
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
@@ -429,7 +427,7 @@ app.get("/api/demandas", authenticateToken, async (req, res) => {
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
@@ -442,7 +440,7 @@ app.get("/api/usuarios", authenticateToken, requireAdmin, async (req, res) => {
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
@@ -464,7 +462,7 @@ app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegiona
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
@@ -492,7 +490,7 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
         client.release();
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor ao adicionar demanda." });
     }
 });
@@ -528,7 +526,7 @@ app.post("/api/missoes", authenticateToken, verificarPermissaoRegional, async (r
         client.release();
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor ao adicionar missão." });
     }
 });
@@ -568,7 +566,7 @@ app.put("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async
         }
         res.json(rows[0]);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor ao atualizar missão." });
     }
 });
@@ -608,7 +606,7 @@ app.delete("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, as
         }
         res.status(204).send();
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor ao excluir missão." });
     }
 });
@@ -630,7 +628,7 @@ app.post("/api/interacoes", authenticateToken, async (req, res) => {
         client.release();
         res.status(201).json(rows[0]);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor ao adicionar interação." });
     }
 });
@@ -649,7 +647,7 @@ app.get("/api/interacoes/:missao_id", authenticateToken, async (req, res) => {
         client.release();
         res.json(rows);
     } catch (err) {
-        console.error(err);
+        console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
