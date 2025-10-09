@@ -368,6 +368,7 @@
                         prazoNecessidade: 'Urgente',
                         observacoes: ''
                     });
+                    console.log('[NovaDemanda] Chamando onDemandaCriada');
                     if (onDemandaCriada) onDemandaCriada();
                 } catch (error) {
                     console.error("Erro ao submeter:", error);
@@ -517,8 +518,8 @@
         };
 
         // Componente de Missões Kanban
-        const MissoesKanban = ({ user }) => {
-            const [missoes, setMissoes] = useState([]);
+        const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
+            const [missoes, setMissoes] = useState(missoesExternas || []);
             const [selectedMissao, setSelectedMissao] = useState(null);
             const [interacoes, setInteracoes] = useState([]);
             const [novaInteracao, setNovaInteracao] = useState('');
@@ -527,8 +528,14 @@
             const columns = ['Em busca', 'Encontrado', 'Locado'];
 
             useEffect(() => {
-                loadMissoes();
-            }, []);
+                console.log('[MissoesKanban] missoesExternas mudou:', missoesExternas);
+                if (missoesExternas) {
+                    setMissoes(missoesExternas);
+                    setLoading(false);
+                } else {
+                    loadMissoes();
+                }
+            }, [missoesExternas]);
 
             const loadMissoes = async () => {
                 try {
@@ -558,7 +565,7 @@
 
             const updateMissaoStatus = async (missaoId, novoStatus) => {
                 try {
-                    const response = await apiRequest(`/api/missoes/${missaoId}/status`, {
+                    const response = await apiRequest(`/api/missoes/${missaoId}`, {
                         method: 'PUT',
                         body: JSON.stringify({ status: novoStatus }),
                     });
@@ -567,6 +574,9 @@
                         setMissoes(prev => prev.map(m => 
                             m.id === missaoId ? { ...m, status: novoStatus } : m
                         ));
+                        if (onRefresh) {
+                            onRefresh();
+                        }
                     }
                 } catch (error) {
                     console.error('Erro ao atualizar status:', error);
@@ -1098,6 +1108,7 @@
             }, []);
 
             const loadData = async () => {
+                console.log('[Dashboard] loadData chamado');
                 try {
                     const [missoesRes, demandasRes] = await Promise.all([
                         apiRequest('/api/missoes'),
@@ -1106,11 +1117,13 @@
 
                     if (missoesRes.ok) {
                         const missoesData = await missoesRes.json();
+                        console.log('[Dashboard] Missões carregadas:', missoesData.length);
                         setMissoes(missoesData);
                     }
 
                     if (demandasRes.ok) {
                         const demandasData = await demandasRes.json();
+                        console.log('[Dashboard] Demandas carregadas:', demandasData.length);
                         setDemandas(demandasData);
                     }
                 } catch (error) {
@@ -1139,7 +1152,7 @@
                     case 'demandas':
                         return <NovaDemanda onDemandaCriada={loadData} />;
                     case 'missoes':
-                        return <MissoesKanban user={user} />;
+                        return <MissoesKanban user={user} missoesExternas={missoes} onRefresh={loadData} />;
                     default:
                         return (
                             <div className="p-6">
