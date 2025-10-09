@@ -387,7 +387,7 @@
                 tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
                 faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
                 prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
-                regiaoDemanda: ["Geral", "Norte", "Sul", "Leste", "Oeste", "Centro"],
+                regiaoDemanda: ["Geral", "Balneário Camboriú", "Itajaí", "Itapema"],
             };
 
             return (
@@ -1182,11 +1182,11 @@
         };
 
         // Renderizar a aplicação
-        ReactDOM.render(
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
             <AuthProvider>
                 <App />
-            </AuthProvider>,
-            document.getElementById('root')
+            </AuthProvider>
         );
     </script>
 </body>

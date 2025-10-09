@@ -516,7 +516,7 @@ text = ""
         const { rows } = await client.query(
             `INSERT INTO demandas (codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, regiao_demanda, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, criado_por_id)
              VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'Geral'), $8, $9, $10, $11, $12) RETURNING *`,
-            [codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, regiao_demanda, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, req.user.id]
+            [consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, req.user.id]
         );
         client.release();
         res.status(201).json(rows[0]);
