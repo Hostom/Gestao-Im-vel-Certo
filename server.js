@@ -121,7 +121,7 @@ db.serialize(() => {
             
             // Usuário admin
             db.run(`INSERT INTO usuarios (nome, email, senha, tipo, regiao) VALUES (?, ?, ?, ?, ?)`, 
-                   ['Administrador', 'admin@imovelcerto.com', senhaHash, 'admin', 'Geral']);
+                   ['Administrador', 'admin@adimimoveis.com.br', senhaHash, 'admin', 'Geral']);
             
             // Gerente regional de Itapema
             db.run(`INSERT INTO usuarios (nome, email, senha, tipo, regiao) VALUES (?, ?, ?, ?, ?)`, 
