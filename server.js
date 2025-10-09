@@ -6,9 +6,9 @@ const jwt = require("jsonwebtoken");
 const session = require("express-session");
 
 // --- Configuração do Banco de Dados PostgreSQL ---
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres:fYZxeVNPdHvLVLGSLeVtusXSUGbyjDbi@shortline.proxy.rlwy.net:25100/railway";
+const POSTGRES_URL = process.env.POSTGRES_URL; // Vercel fornece POSTGRES_URL
 const pool = new Pool({
-    connectionString: DATABASE_URL,
+    connectionString: POSTGRES_URL,
     ssl: {
         rejectUnauthorized: false
     }
@@ -18,7 +18,7 @@ const pool = new Pool({
 const JWT_SECRET = process.env.JWT_SECRET || "sua_chave_secreta_muito_segura_aqui";
 
 async function initializeDb() {
-    let client; // Declare client here to ensure it's always defined
+    let client; // Declare client here to ensure it\\\\'s always defined
     try {
         client = await pool.connect();
         console.log("Conectado ao PostgreSQL!");
@@ -30,8 +30,8 @@ async function initializeDb() {
                 nome TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 senha TEXT NOT NULL,
-                tipo TEXT NOT NULL CHECK (tipo IN (\"admin\", \"gerente_regional\", \"captador\")),
-                regiao TEXT DEFAULT \"Geral\",
+                tipo TEXT NOT NULL CHECK (tipo IN ('admin', 'gerente_regional', 'captador')),
+                regiao TEXT DEFAULT 'Geral',
                 regioes_responsavel TEXT,
                 gerente_responsavel_id INTEGER REFERENCES usuarios(id),
                 ativo BOOLEAN DEFAULT TRUE,
@@ -41,16 +41,16 @@ async function initializeDb() {
             -- Adicionar colunas se não existirem
             DO $$
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'regioes_responsavel\') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='regioes_responsavel') THEN
                     ALTER TABLE usuarios ADD COLUMN regioes_responsavel TEXT;
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'gerente_responsavel_id\') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='gerente_responsavel_id') THEN
                     ALTER TABLE usuarios ADD COLUMN gerente_responsavel_id INTEGER REFERENCES usuarios(id);
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'ativo\') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='ativo') THEN
                     ALTER TABLE usuarios ADD COLUMN ativo BOOLEAN DEFAULT TRUE;
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'usuarios\' AND column_name=\'data_criacao\') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='usuarios' AND column_name='data_criacao') THEN
                     ALTER TABLE usuarios ADD COLUMN data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
                 END IF;
             END
@@ -64,7 +64,7 @@ async function initializeDb() {
                 contato TEXT NOT NULL,
                 tipo_imovel TEXT NOT NULL,
                 regiao_desejada TEXT NOT NULL,
-                regiao_demanda TEXT DEFAULT \"Geral\",
+                regiao_demanda TEXT DEFAULT 'Geral',
                 faixa_aluguel TEXT NOT NULL,
                 caracteristicas_desejadas TEXT,
                 prazo_necessidade TEXT NOT NULL,
@@ -75,10 +75,10 @@ async function initializeDb() {
 
             DO $$
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'demandas\' AND column_name=\'regiao_demanda\') THEN
-                    ALTER TABLE demandas ADD COLUMN regiao_demanda TEXT DEFAULT \'Geral\';
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='demandas' AND column_name='regiao_demanda') THEN
+                    ALTER TABLE demandas ADD COLUMN regiao_demanda TEXT DEFAULT 'Geral';
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'demandas\' AND column_name=\'criado_por_id\') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='demandas' AND column_name='criado_por_id') THEN
                     ALTER TABLE demandas ADD COLUMN criado_por_id INTEGER REFERENCES usuarios(id);
                 END IF;
             END
@@ -93,7 +93,7 @@ async function initializeDb() {
                 consultor_solicitante TEXT NOT NULL,
                 regiao_bairro TEXT NOT NULL,
                 descricao_busca TEXT NOT NULL,
-                status TEXT DEFAULT \"Em busca\" CHECK (status IN (\"Em busca\", \"Encontrado\", \"Locado\")),
+                status TEXT DEFAULT 'Em busca' CHECK (status IN ('Em busca', 'Encontrado', 'Locado')),
                 data_missao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 data_retorno TIMESTAMP,
                 criado_por_id INTEGER REFERENCES usuarios(id)
@@ -101,10 +101,10 @@ async function initializeDb() {
 
             DO $$
             BEGIN
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'missoes\' AND column_name=\'captador_id\') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='missoes' AND column_name='captador_id') THEN
                     ALTER TABLE missoes ADD COLUMN captador_id INTEGER REFERENCES usuarios(id);
                 END IF;
-                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=\'missoes\' AND column_name=\'criado_por_id\') THEN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='missoes' AND column_name='criado_por_id') THEN
                     ALTER TABLE missoes ADD COLUMN criado_por_id INTEGER REFERENCES usuarios(id);
                 END IF;
             END
@@ -122,7 +122,7 @@ async function initializeDb() {
             CREATE TABLE IF NOT EXISTS relatorios (
                 id SERIAL PRIMARY KEY,
                 titulo TEXT NOT NULL,
-                tipo TEXT NOT NULL CHECK (tipo IN (\"demandas\", \"missoes\", \"performance\", \"geral\")),
+                tipo TEXT NOT NULL CHECK (tipo IN ('demandas', 'missoes', 'performance', 'geral')),
                 filtros TEXT,
                 gerado_por_id INTEGER REFERENCES usuarios(id),
                 regiao TEXT,
@@ -378,12 +378,12 @@ app.get("/api/me", authenticateToken, (req, res) => {
 
 // GET /api/missoes - Retorna missões (filtradas por captador se não for gerente)
 app.get("/api/missoes", authenticateToken, async (req, res) => {
-    let query = "SELECT * FROM missoes ORDER BY data_missao DESC";
+    let query = `SELECT * FROM missoes ORDER BY data_missao DESC`;
     let params = [];
     
     // Se for captador, mostrar apenas as missões do próprio captador
     if (req.user.tipo === "captador") {
-        query = "SELECT * FROM missoes WHERE captador_id = $1 ORDER BY data_missao DESC";
+        query = `SELECT * FROM missoes WHERE captador_id = $1 ORDER BY data_missao DESC`;
         params = [req.user.id];
     }
     // Se for gerente regional, mostrar apenas missões das suas regiões
@@ -410,7 +410,7 @@ app.get("/api/missoes", authenticateToken, async (req, res) => {
 
 // GET /api/demandas - Retorna demandas
 app.get("/api/demandas", authenticateToken, async (req, res) => {
-    let query = "SELECT * FROM demandas ORDER BY data_solicitacao DESC";
+    let query = `SELECT * FROM demandas ORDER BY data_solicitacao DESC`;
     let params = [];
     
     // Se for gerente regional, mostrar apenas demandas das suas regiões
@@ -436,7 +436,7 @@ app.get("/api/demandas", authenticateToken, async (req, res) => {
 app.get("/api/usuarios", authenticateToken, requireAdmin, async (req, res) => {
     try {
         const client = await pool.connect();
-        const { rows } = await client.query("SELECT id, nome, email, tipo, regiao, regioes_responsavel, ativo FROM usuarios ORDER BY nome");
+        const { rows } = await client.query(`SELECT id, nome, email, tipo, regiao, regioes_responsavel, ativo FROM usuarios ORDER BY nome`);
         client.release();
         res.json(rows);
     } catch (err) {
@@ -447,12 +447,12 @@ app.get("/api/usuarios", authenticateToken, requireAdmin, async (req, res) => {
 
 // GET /api/usuarios/captadores - Retorna apenas captadores (para gerentes regionais)
 app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegional, async (req, res) => {
-    let query = "SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \"captador\" ORDER BY nome";
+    let query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = 'captador' ORDER BY nome`;
     let params = [];
 
     if (req.user.tipo === "gerente_regional") {
         const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
-        query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = \"captador\" AND regiao IN (${placeholders}) ORDER BY nome`;
+        query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = 'captador' AND regiao IN (${placeholders}) ORDER BY nome`;
         params = req.regioesPermitidas;
     }
 
@@ -648,7 +648,7 @@ app.get("/api/interacoes/:missao_id", authenticateToken, async (req, res) => {
         res.json(rows);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Erro interno do servidor ao obter interações." });
+        res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
 
