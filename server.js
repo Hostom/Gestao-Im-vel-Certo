@@ -231,7 +231,7 @@ app.post('/api/logout', (req, res) => {
 
 // Rota principal para servir o frontend
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/imovel_certo_auth.html');
+  res.sendFile(__dirname + '/imovel_certo_app.html');
 });
 
 // GET /api/me - Obter dados do usuário logado
