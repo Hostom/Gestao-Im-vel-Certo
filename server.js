@@ -159,23 +159,25 @@ async function initializeDb() {
                    ["Administrador", "admin@adimimoveis.com.br", senhaHash, "admin", "Geral"]);
             
             await client.query(`INSERT INTO usuarios (nome, email, senha, tipo, regiao) VALUES ($1, $2, $3, $4, $5)`, 
-                   ["Gerente Itapema", "pedro@adimimoveis.com.br", senhaHash, "gerente_regional", "Itapema"]);
+                   ["Pedro", "pedro@adimimoveis.com.br", senhaHash, "gerente_regional", "Itapema"]);
             
             await client.query(`INSERT INTO usuarios (nome, email, senha, tipo, regiao, regioes_responsavel) VALUES ($1, $2, $3, $4, $5, $6)`, 
-                   ["Lidiane Silva", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"]);
+                   ["Lidiane", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"]);
             
             const captadoresItapema = [
                 ["Jenifer de Souza", "jenifer@adimimoveis.com.br", "Itapema"],
             ];
             
             const captadoresBalnearioCamboriu = [
-                ["Carlos Santos", "carlos@adimimoveis.com.br", "Balneario_Camboriu"],
-                ["Ana Costa", "ana@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Michele Oliveira", "michele@adimimoveis.com.br", "Balneario_Camboriu"],
+                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Balneario_Camboriu"],
             ];
 
             const captadoresItajai = [
-                ["Roberto Lima", "roberto@adimimoveis.com.br", "Itajai"],
-                ["Fernanda Oliveira", "fernanda@adimimoveis.com.br", "Itajai"],
+                ["Morgana Barreto", "morgana@adimimoveis.com.br", "Itajai"],
+                ["Michele Oliveira", "michele@adimimoveis.com.br", "Itajai"],
+                ["Bruna Spinello", "brunaspinello@crimoveis.com.br", "Itajai"],
             ];
             
             const todosCaptadores = [...captadoresItapema, ...captadoresBalnearioCamboriu, ...captadoresItajai];
