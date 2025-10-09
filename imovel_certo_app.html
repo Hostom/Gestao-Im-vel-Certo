@@ -329,6 +329,7 @@
                 contato: '',
                 tipoImovel: 'Apartamento',
                 regiaoDesejada: '',
+                regiaoDemanda: 'Geral',
                 faixaAluguel: 'De 8mil a 10mil',
                 caracteristicasDesejadas: '',
                 prazoNecessidade: 'Urgente',
@@ -360,6 +361,7 @@
                         contato: '',
                         tipoImovel: 'Apartamento',
                         regiaoDesejada: '',
+                        regiaoDemanda: 'Geral',
                         faixaAluguel: 'De 8mil a 10mil',
                         caracteristicasDesejadas: '',
                         prazoNecessidade: 'Urgente',
@@ -385,6 +387,7 @@
                 tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
                 faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
                 prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
+                regiaoDemanda: ["Geral", "Norte", "Sul", "Leste", "Oeste", "Centro"],
             };
 
             return (
@@ -395,6 +398,7 @@
                             <FormSelect name="consultorLocacao" label="Consultor de Locação" icon="Briefcase" options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
                             {inputFields.map(field => <FormInput key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />)}
                             <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon="Building" options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
+                            <FormSelect name="regiaoDemanda" label="Região da Demanda" icon="MapPin" options={selectFields.regiaoDemanda} value={formData.regiaoDemanda} onChange={handleChange} />
                             <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon="Star" options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
                             <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon="Calendar" options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
                         </div>
