@@ -88,9 +88,9 @@ db.serialize(() => {
             
             // Usuários captadores
             const captadores = [
-                ['Bruna Silva', 'bruna@imovelcerto.com'],
-                ['Michele Santos', 'michele@imovelcerto.com'],
-                ['Morgana Costa', 'morgana@imovelcerto.com']
+                ['Bruna Spinello', 'brunaspinello@crimoveis.com.br'],
+                ['Michele Oliveira', 'michele@adimimoveis.com.br'],
+                ['Morgana Barreto', 'morgana@adimimoveis.com.br']
             ];
             
             captadores.forEach(captador => {
@@ -126,7 +126,7 @@ db.serialize(() => {
                     }
                     
                     // Inserir missão correspondente
-                    const captadores = ["Bruna Silva", "Michele Santos", "Morgana Costa"];
+                    const captadores = ["Bruna Speinello", "Michele Oliveira", "Morgana Barreto"];
                     const status = ['Em busca', 'Encontrado', 'Locado'];
                     
                     db.run(`INSERT INTO missoes (demanda_id, codigo_demanda, captador_responsavel, consultor_solicitante, regiao_bairro, descricao_busca, status) 
