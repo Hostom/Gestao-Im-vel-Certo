@@ -476,10 +476,39 @@ app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegiona
 
 // POST /api/demandas - Adicionar nova demanda
 app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (req, res) => {
-    const { codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, regiao_demanda } = req.body;
+    let { codigoDemanda, consultorLocacao, clienteInteressado, contato, tipoImovel, regiaoDesejada, faixaAluguel, caracteristicasDesejadas, prazoNecessidade, observacoes, regiaoDemanda } = req.body;
 
-  if (!codigo_demanda || !consultor_locacao || !cliente_interessado || !contato || !tipo_imovel || !regiao_desejada || !faixa_aluguel || !prazo_necessidade) {
+    // Mapear nomes de campos do frontend (camelCase) para o backend (snake_case)
+    const mappedBody = {
+        codigo_demanda: codigoDemanda,
+        consultor_locacao: consultorLocacao,
+        cliente_interessado: clienteInteressado,
+        contato: contato,
+        tipo_imovel: tipoImovel,
+        regiao_desejada: regiaoDesejada,
+        faixa_aluguel: faixaAluguel,
+        caracteristicas_desejadas: caracteristicasDesejadas,
+        prazo_necessidade: prazoNecessidade,
+        observacoes: observacoes,
+        regiao_demanda: regiaoDemanda
+    };
+
+    // Gerar codigo_demanda se não for fornecido
+    if (!mappedBody.codigo_demanda) {
+        mappedBody.codigo_demanda = `DEM-${Date.now()}`;
+    }
+
+    // Validar campos obrigatórios (usando os nomes mapeados)
+    if (!mappedBody.codigo_demanda || !mappedBody.consultor_locacao || !mappedBody.cliente_interessado || !mappedBody.contato || !mappedBody.tipo_imovel || !mappedBody.regiao_desejada || !mappedBody.faixa_aluguel || !mappedBody.prazo_necessidade) {
         return res.status(400).json({ error: "Todos os campos obrigatórios devem ser preenchidos." });
+    }
+
+text = ""
+
+
+    // Validar permissão regional para a demanda
+    if (req.user.tipo === "gerente_regional" && !req.regioesPermitidas.includes(regiao_demanda)) {
+        return res.status(403).json({ error: "Acesso negado. Você não tem permissão para adicionar demandas nesta região." });
     }
 
     // Validar permissão regional para a demanda
