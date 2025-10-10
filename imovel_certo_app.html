@@ -858,7 +858,7 @@
                         />
                         <KPICard 
                             title="Taxa de Sucesso" 
-                            value={`${data.taxaSucesso}%`} 
+                            value={`${Number(data.taxaSucesso || 0)}%`}
                             icon="Trophy"
                             color="yellow"
                         />
