@@ -368,6 +368,7 @@
                         prazoNecessidade: 'Urgente',
                         observacoes: ''
                     });
+                    console.log('[NovaDemanda] Chamando onDemandaCriada');
                     if (onDemandaCriada) onDemandaCriada();
                 } catch (error) {
                     console.error("Erro ao submeter:", error);
@@ -527,8 +528,10 @@
             const columns = ['Em busca', 'Encontrado', 'Locado'];
 
             useEffect(() => {
+                console.log('[MissoesKanban] missoesExternas mudou:', missoesExternas);
                 if (missoesExternas) {
                     setMissoes(missoesExternas);
+                    setLoading(false);
                 } else {
                     loadMissoes();
                 }
@@ -562,7 +565,7 @@
 
             const updateMissaoStatus = async (missaoId, novoStatus) => {
                 try {
-                    const response = await apiRequest(`/api/missoes/${missaoId}/status`, {
+                    const response = await apiRequest(`/api/missoes/${missaoId}`, {
                         method: 'PUT',
                         body: JSON.stringify({ status: novoStatus }),
                     });
@@ -1105,6 +1108,7 @@
             }, []);
 
             const loadData = async () => {
+                console.log('[Dashboard] loadData chamado');
                 try {
                     const [missoesRes, demandasRes] = await Promise.all([
                         apiRequest('/api/missoes'),
@@ -1113,11 +1117,13 @@
 
                     if (missoesRes.ok) {
                         const missoesData = await missoesRes.json();
+                        console.log('[Dashboard] Missões carregadas:', missoesData.length);
                         setMissoes(missoesData);
                     }
 
                     if (demandasRes.ok) {
                         const demandasData = await demandasRes.json();
+                        console.log('[Dashboard] Demandas carregadas:', demandasData.length);
                         setDemandas(demandasData);
                     }
                 } catch (error) {
