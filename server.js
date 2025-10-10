@@ -630,53 +630,53 @@ app.put("/api/usuarios/:id/inativar", authenticateToken, requireDiretor, async (
 });
 // Rota do Dashboard (resumo geral)
 app.get('/api/relatorios/dashboard', async (req, res) => {
-try {
-const result = await pool.query(`
-WITH demandas_resumo AS (
-SELECT
-COUNT(*) AS total_demandas,
-COUNT(*) FILTER (
-WHERE date_part('month', data_solicitacao) = date_part('month', CURRENT_DATE)
-AND date_part('year', data_solicitacao) = date_part('year', CURRENT_DATE)
-) AS demandas_mes
-FROM demandas
-),
-missoes_resumo AS (
-SELECT
-COUNT(*) AS total_missoes,
-COUNT(*) FILTER (WHERE status = 'Locado') AS missoes_locadas,
-COUNT(*) FILTER (WHERE status = 'Encontrado') AS missoes_encontradas,
-COUNT(*) FILTER (WHERE status = 'Em Busca') AS missoes_em_busca
-FROM missoes
-)
-SELECT
-COALESCE(d.total_demandas, 0) AS total_demandas,
-COALESCE(d.demandas_mes, 0) AS demandas_mes,
-COALESCE(m.total_missoes, 0) AS total_missoes,
-COALESCE(m.missoes_locadas, 0) AS missoes_locadas,
-COALESCE(m.missoes_encontradas, 0) AS missoes_encontradas,
-COALESCE(m.missoes_em_busca, 0) AS missoes_em_busca,
-COALESCE(ROUND((m.missoes_locadas::numeric / NULLIF(m.total_missoes, 0)) * 100, 1), 0) AS taxa_sucesso
-FROM demandas_resumo d, missoes_resumo m;
-`);
+  try {
+    const result = await pool.query(`
+      WITH demandas_resumo AS (
+        SELECT 
+          COUNT(*) AS total_demandas,
+          COUNT(*) FILTER (
+            WHERE date_part('month', data_solicitacao) = date_part('month', CURRENT_DATE)
+              AND date_part('year', data_solicitacao) = date_part('year', CURRENT_DATE)
+          ) AS demandas_mes
+        FROM demandas
+      ),
+      missoes_resumo AS (
+        SELECT 
+          COUNT(*) AS total_missoes,
+          COUNT(*) FILTER (WHERE LOWER(status) = 'locado') AS missoes_locadas,
+          COUNT(*) FILTER (WHERE LOWER(status) = 'encontrado') AS missoes_encontradas,
+          COUNT(*) FILTER (WHERE LOWER(status) = 'em busca') AS missoes_em_busca
+        FROM missoes
+      )
+      SELECT 
+        COALESCE(d.total_demandas, 0) AS total_demandas,
+        COALESCE(d.demandas_mes, 0) AS demandas_mes,
+        COALESCE(m.total_missoes, 0) AS total_missoes,
+        COALESCE(m.missoes_locadas, 0) AS missoes_locadas,
+        COALESCE(m.missoes_encontradas, 0) AS missoes_encontradas,
+        COALESCE(m.missoes_em_busca, 0) AS missoes_em_busca,
+        COALESCE(ROUND((m.missoes_locadas::numeric / NULLIF(m.total_missoes, 0)) * 100, 1), 0) AS taxa_sucesso
+      FROM demandas_resumo d
+      CROSS JOIN missoes_resumo m;
+    `);
 
+    const data = result.rows[0] || {
+      total_demandas: 0,
+      demandas_mes: 0,
+      total_missoes: 0,
+      missoes_locadas: 0,
+      missoes_encontradas: 0,
+      missoes_em_busca: 0,
+      taxa_sucesso: 0
+    };
 
-const data = result.rows[0] || {
-total_demandas: 0,
-demandas_mes: 0,
-total_missoes: 0,
-missoes_locadas: 0,
-missoes_encontradas: 0,
-missoes_em_busca: 0,
-taxa_sucesso: 0
-};
-
-
-res.json(data);
-} catch (error) {
-console.error('Erro ao gerar relatório de dashboard:', error);
-res.status(500).json({ erro: 'Erro ao gerar relatório de dashboard' });
-}
+    console.log('📊 Dashboard Data:', data); // log no Railway
+    res.json(data);
+  } catch (error) {
+    console.error('❌ Erro ao gerar relatório de dashboard:', error);
+    res.status(500).json({ erro: 'Erro ao gerar relatório de dashboard' });
+  }
 });
 
 
