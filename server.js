@@ -670,7 +670,14 @@ missoes_em_busca: 0,
 taxa_sucesso: 0
 };
 
+// 🔧 Garante que as colunas de missões existam mesmo se o CROSS JOIN não retornar nada
+if (!('total_missoes' in data)) data.total_missoes = 0;
+if (!('missoes_locadas' in data)) data.missoes_locadas = 0;
+if (!('missoes_encontradas' in data)) data.missoes_encontradas = 0;
+if (!('missoes_em_busca' in data)) data.missoes_em_busca = 0;
+if (!('taxa_sucesso' in data)) data.taxa_sucesso = 0;
 
+    
 if (isNaN(data.taxa_sucesso)) data.taxa_sucesso = 0;
 
 
