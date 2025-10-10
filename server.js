@@ -622,12 +622,11 @@ app.put("/api/usuarios/:id/inativar", authenticateToken, requireDiretor, async (
 // Rota do Dashboard (resumo geral)
 app.get('/api/relatorios/dashboard', async (req, res) => {
 try {
-res.setHeader('Cache-Control', 'no-store'); // impede cache
 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 res.setHeader('Pragma', 'no-cache');
 res.setHeader('Expires', '0');
 
-const result = await pool.query(`
+const result = await pool.query(
 WITH demandas_resumo AS (
 SELECT COUNT(*) AS total_demandas,
 COUNT(*) FILTER (
@@ -649,10 +648,10 @@ COALESCE(m.total_missoes, 0) AS total_missoes,
 COALESCE(m.missoes_locadas, 0) AS missoes_locadas,
 COALESCE(m.missoes_encontradas, 0) AS missoes_encontradas,
 COALESCE(m.missoes_em_busca, 0) AS missoes_em_busca,
-COALESCE(ROUND((m.missoes_locadas::numeric / NULLIF(m.total_missoes, 0)) * 100, 1), 0) AS taxa_sucesso
+COALESCE(ROUND((SUM(CASE WHEN status = 'concluida' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 1), 0) AS taxa_sucesso
 FROM demandas_resumo d
 CROSS JOIN missoes_resumo m;
-`);
+);
 
 
 const data = result.rows[0] || {
