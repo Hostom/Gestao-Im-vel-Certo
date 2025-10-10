@@ -626,7 +626,7 @@ res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-reval
 res.setHeader('Pragma', 'no-cache');
 res.setHeader('Expires', '0');
 
-const result = await pool.query(
+const result = await pool.query(`
 WITH demandas_resumo AS (
 SELECT COUNT(*) AS total_demandas,
 COUNT(*) FILTER (
@@ -651,7 +651,7 @@ COALESCE(m.missoes_em_busca, 0) AS missoes_em_busca,
 COALESCE(ROUND((SUM(CASE WHEN status = 'concluida' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 1), 0) AS taxa_sucesso
 FROM demandas_resumo d
 CROSS JOIN missoes_resumo m;
-);
+`);
 
 
 const data = result.rows[0] || {
