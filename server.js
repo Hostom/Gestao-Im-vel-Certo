@@ -295,19 +295,37 @@ app.get("/api/me", authenticateToken, (req, res) => {
 
 // GET /api/missoes
 app.get("/api/missoes", authenticateToken, async (req, res) => {
-    let query = `SELECT * FROM missoes ORDER BY data_missao DESC`;
+    let query = `
+        SELECT 
+            m.*, 
+            d.cliente_interessado, 
+            d.contato, 
+            d.tipo_imovel, 
+            d.regiao_desejada, 
+            d.faixa_aluguel,
+            d.prazo_necessidade,
+            d.consultor_locacao
+        FROM missoes m
+        LEFT JOIN demandas d ON m.codigo_demanda = d.codigo_demanda
+    `;
+    let whereClauses = [];
     let params = [];
 
     if (req.user.tipo === "captador") {
-        query = `SELECT * FROM missoes WHERE captador_id = $1 ORDER BY data_missao DESC`;
-        params = [req.user.id];
+        whereClauses.push(`m.captador_id = $${params.length + 1}`);
+        params.push(req.user.id);
     } else if (req.user.tipo === "gerente_regional") {
         const regioes = req.user.regioes_responsavel ? req.user.regioes_responsavel.split(",").map(r => r.trim()) : [req.user.regiao];
-        const placeholders = regioes.map((_, i) => `$${i + 1}`).join(",");
-        query = `SELECT m.* FROM missoes m LEFT JOIN demandas d ON m.codigo_demanda = d.codigo_demanda WHERE d.regiao_demanda IN (${placeholders}) OR d.regiao_demanda IS NULL ORDER BY m.data_missao DESC`;
-        params = regioes;
+        const placeholders = regioes.map((_, i) => `$${params.length + i + 1}`).join(",");
+        whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
+        params = params.concat(regioes);
     }
-    // diretor/admin - mostrar todas
+
+    if (whereClauses.length > 0) {
+        query += " WHERE " + whereClauses.join(" AND ");
+    }
+
+    query += " ORDER BY m.data_missao DESC";
 
     try {
         const client = await pool.connect();
@@ -319,6 +337,7 @@ app.get("/api/missoes", authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
+
 
 // GET /api/demandas
 app.get("/api/demandas", authenticateToken, async (req, res) => {
