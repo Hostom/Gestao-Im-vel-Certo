@@ -637,9 +637,9 @@ FROM demandas
 ),
 missoes_resumo AS (
 SELECT COUNT(*) AS total_missoes,
-COUNT(*) FILTER (WHERE LOWER(status) = 'locado') AS missoes_locadas,
-COUNT(*) FILTER (WHERE LOWER(status) = 'encontrado') AS missoes_encontradas,
-COUNT(*) FILTER (WHERE LOWER(status) = 'em busca') AS missoes_em_busca
+COUNT(*) FILTER (WHERE LOWER(situacao) = 'locado') AS missoes_locadas,
+COUNT(*) FILTER (WHERE LOWER(situacao) = 'encontrado') AS missoes_encontradas,
+COUNT(*) FILTER (WHERE LOWER(situacao) = 'em busca') AS missoes_em_busca
 FROM missoes
 )
 SELECT COALESCE(d.total_demandas, 0) AS total_demandas,
