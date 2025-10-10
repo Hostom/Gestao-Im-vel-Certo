@@ -666,6 +666,9 @@ taxa_sucesso: 0
 };
 
 
+if (isNaN(data.taxa_sucesso)) data.taxa_sucesso = 0;
+
+
 console.log('📊 Dashboard Data:', data);
 res.json(data);
 } catch (error) {
