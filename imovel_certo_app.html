@@ -528,7 +528,6 @@
             const columns = ['Em busca', 'Encontrado', 'Locado'];
 
             useEffect(() => {
-                console.log('[MissoesKanban] missoesExternas mudou:', missoesExternas);
                 if (missoesExternas) {
                     setMissoes(missoesExternas);
                     setLoading(false);
@@ -543,6 +542,8 @@
                     if (response.ok) {
                         const data = await response.json();
                         setMissoes(data);
+                    } else {
+                        console.error('loadMissoes response not ok', response);
                     }
                 } catch (error) {
                     console.error('Erro ao carregar missões:', error);
@@ -569,14 +570,11 @@
                         method: 'PUT',
                         body: JSON.stringify({ status: novoStatus }),
                     });
-                    
                     if (response.ok) {
-                        setMissoes(prev => prev.map(m => 
-                            m.id === missaoId ? { ...m, status: novoStatus } : m
-                        ));
-                        if (onRefresh) {
-                            onRefresh();
-                        }
+                        setMissoes(prev => prev.map(m => m.id === missaoId ? { ...m, status: novoStatus } : m));
+                        if (onRefresh) onRefresh();
+                    } else {
+                        console.error('updateMissaoStatus response not ok', response);
                     }
                 } catch (error) {
                     console.error('Erro ao atualizar status:', error);
@@ -585,13 +583,11 @@
 
             const addInteracao = async () => {
                 if (!novaInteracao.trim()) return;
-                
                 try {
                     const response = await apiRequest(`/api/missoes/${selectedMissao.id}/interacoes`, {
                         method: 'POST',
                         body: JSON.stringify({ descricao: novaInteracao }),
                     });
-                    
                     if (response.ok) {
                         setNovaInteracao('');
                         loadInteracoes(selectedMissao.id);
@@ -605,39 +601,20 @@
                 const agora = new Date();
                 const criacao = new Date(dataMissao);
                 const horasPassadas = (agora - criacao) / (1000 * 60 * 60);
-                
                 if (horasPassadas > 48) return 'bg-red-500';
                 if (horasPassadas > 24) return 'bg-yellow-500';
                 return 'bg-green-500';
             };
 
-            const handleDragStart = (e, missaoId) => {
-                e.dataTransfer.setData('text/plain', missaoId);
-            };
+            const handleDragStart = (e, missaoId) => { e.dataTransfer.setData('text/plain', missaoId); };
+            const handleDragOver = (e) => { e.preventDefault(); };
+            const handleDrop = (e, novoStatus) => { e.preventDefault(); const missaoId = parseInt(e.dataTransfer.getData('text/plain')); updateMissaoStatus(missaoId, novoStatus); };
 
-            const handleDragOver = (e) => {
-                e.preventDefault();
-            };
+            const openMissaoDetails = (missao) => { setSelectedMissao(missao); loadInteracoes(missao.id); };
 
-            const handleDrop = (e, novoStatus) => {
-                e.preventDefault();
-                const missaoId = parseInt(e.dataTransfer.getData('text/plain'));
-                updateMissaoStatus(missaoId, novoStatus);
-            };
+            if (loading) return <div className="flex justify-center items-center h-64">Carregando missões...</div>;
 
-            const openMissaoDetails = (missao) => {
-                setSelectedMissao(missao);
-                loadInteracoes(missao.id);
-            };
-
-            if (loading) {
-                return <div className="flex justify-center items-center h-64">Carregando missões...</div>;
-            }
-
-            // Filtrar missões se for captador
-            const missoesExibidas = user.tipo === 'captador' 
-                ? missoes.filter(m => m.captador_responsavel === user.nome)
-                : missoes;
+            const missoesExibidas = user.tipo === 'captador' ? missoes.filter(m => m.captador_responsavel === user.nome) : missoes;
 
             return (
                 <div>
@@ -646,25 +623,27 @@
                     </h2>
                     <div className="flex space-x-4 overflow-x-auto pb-4">
                         {columns.map(status => (
-                            <div key={status}
-                                className="kanban-column bg-gray-100 rounded-lg p-3 flex-shrink-0"
-                                onDrop={(e) => handleDrop(e, status)}
-                                onDragOver={handleDragOver}
-                            >
+                            <div key={status} className="kanban-column bg-gray-100 rounded-lg p-3 flex-shrink-0" onDrop={(e)=>handleDrop(e,status)} onDragOver={handleDragOver}>
                                 <h3 className="font-semibold text-lg mb-4 px-2">{status} ({missoesExibidas.filter(m => m.status === status).length})</h3>
                                 <div className="space-y-3">
                                     {missoesExibidas.filter(m => m.status === status).map(missao => (
-                                        <div key={missao.id}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, missao.id)}
-                                            className="bg-white p-4 rounded-md shadow-sm cursor-grab active:cursor-grabbing"
-                                        >
+                                        <div key={missao.id} draggable onDragStart={(e)=>handleDragStart(e,missao.id)} className="bg-white p-4 rounded-md shadow-sm cursor-grab active:cursor-grabbing">
                                             <div className="flex justify-between items-start">
-                                                <p className="font-semibold text-gray-800">{missao.codigo_demanda}</p>
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{missao.codigo_demanda}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">{missao.consultor_solicitante || missao.consultor_locacao || ''}</p>
+                                                </div>
                                                 <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{missao.captador_responsavel}</span>
                                             </div>
+
                                             <p className="text-sm text-gray-600 mt-2">{missao.descricao_busca}</p>
                                             <p className="text-xs text-gray-500 mt-1">Bairro: {missao.regiao_bairro}</p>
+
+                                            <div className="mt-2 text-sm text-gray-700">
+                                                <p><strong>Cliente:</strong> {missao.cliente_interessado || '—'}</p>
+                                                <p><strong>Contato:</strong> {missao.contato || '—'}</p>
+                                            </div>
+
                                             {missao.status === 'Em busca' && (
                                                 <div className="mt-3">
                                                     <div className="w-full bg-gray-200 rounded-full h-1.5">
@@ -673,12 +652,8 @@
                                                     <p className="text-xs text-gray-500 mt-1">SLA 48h</p>
                                                 </div>
                                             )}
-                                            <button
-                                                onClick={() => openMissaoDetails(missao)}
-                                                className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                                            >
-                                                <Icon name="Eye" />Ver detalhes
-                                            </button>
+
+                                            <button onClick={() => openMissaoDetails(missao)} className="mt-2 text-xs text-blue-600 hover:text-blue-800"><Icon name="Eye" />Ver detalhes</button>
                                         </div>
                                     ))}
                                 </div>
@@ -686,18 +661,27 @@
                         ))}
                     </div>
 
-                    {/* Modal de detalhes da missão */}
                     {selectedMissao && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                             <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-xl font-bold">Detalhes da Missão - {selectedMissao.codigo_demanda}</h3>
-                                    <button onClick={() => setSelectedMissao(null)} className="text-gray-500 hover:text-gray-700">
-                                        <Icon name="X" />
-                                    </button>
+                                    <button onClick={() => setSelectedMissao(null)} className="text-gray-500 hover:text-gray-700"><Icon name="X" /></button>
                                 </div>
-                                
+
                                 <div className="space-y-4">
+                                    <div>
+                                        <h4 className="font-semibold mb-2">Dados do Cliente</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
+                                            <div><strong>Cliente:</strong> {selectedMissao.cliente_interessado || '—'}</div>
+                                            <div><strong>Contato:</strong> {selectedMissao.contato || '—'}</div>
+                                            <div><strong>Tipo de Imóvel:</strong> {selectedMissao.tipo_imovel || '—'}</div>
+                                            <div><strong>Região:</strong> {selectedMissao.regiao_desejada || selectedMissao.regiao_demanda || '—'}</div>
+                                            <div><strong>Faixa:</strong> {selectedMissao.faixa_aluguel || '—'}</div>
+                                            <div><strong>Prazo:</strong> {selectedMissao.prazo_necessidade || '—'}</div>
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <h4 className="font-semibold mb-2">Interações</h4>
                                         <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -705,32 +689,19 @@
                                                 <div key={interacao.id} className="bg-gray-50 p-3 rounded">
                                                     <div className="flex justify-between items-start">
                                                         <span className="font-medium text-sm">{interacao.usuario_nome}</span>
-                                                        <span className="text-xs text-gray-500">
-                                                            {new Date(interacao.data_interacao).toLocaleString()}
-                                                        </span>
+                                                        <span className="text-xs text-gray-500">{new Date(interacao.data_interacao).toLocaleString()}</span>
                                                     </div>
                                                     <p className="text-sm mt-1">{interacao.descricao}</p>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-                                    
+
                                     <div>
                                         <h4 className="font-semibold mb-2">Adicionar Interação</h4>
                                         <div className="flex space-x-2">
-                                            <input
-                                                type="text"
-                                                value={novaInteracao}
-                                                onChange={(e) => setNovaInteracao(e.target.value)}
-                                                placeholder="Digite sua interação..."
-                                                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
-                                            />
-                                            <button
-                                                onClick={addInteracao}
-                                                className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
-                                            >
-                                                <Icon name="Plus" />
-                                            </button>
+                                            <input type="text" value={novaInteracao} onChange={(e) => setNovaInteracao(e.target.value)} placeholder="Digite sua interação..." className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm" />
+                                            <button onClick={addInteracao} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"><Icon name="Plus" /></button>
                                         </div>
                                     </div>
                                 </div>
