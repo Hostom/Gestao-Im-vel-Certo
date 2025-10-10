@@ -631,29 +631,46 @@ app.put("/api/usuarios/:id/inativar", authenticateToken, requireDiretor, async (
 // Rota do Dashboard (resumo geral)
 app.get('/api/relatorios/dashboard', async (req, res) => {
   try {
-    const totalDemandas = await pool.query('SELECT COUNT(*) FROM demandas');
-    const demandasMes = await pool.query("SELECT COUNT(*) FROM demandas WHERE date_part('month', data_criacao) = date_part('month', CURRENT_DATE)");
-    const totalMissoes = await pool.query('SELECT COUNT(*) FROM missoes');
-    const missoesLocadas = await pool.query("SELECT COUNT(*) FROM missoes WHERE status = 'Locado'");
+    const result = await pool.query(`
+      WITH demandas_resumo AS (
+        SELECT 
+          COUNT(*) AS total_demandas,
+          COUNT(*) FILTER (
+            WHERE date_part('month', data_solicitacao) = date_part('month', CURRENT_DATE)
+              AND date_part('year', data_solicitacao) = date_part('year', CURRENT_DATE)
+          ) AS demandas_mes
+        FROM demandas
+      ),
+      missoes_resumo AS (
+        SELECT 
+          COUNT(*) AS total_missoes,
+          COUNT(*) FILTER (WHERE status = 'Locado') AS missoes_locadas,
+          COUNT(*) FILTER (WHERE status = 'Encontrado') AS missoes_encontradas,
+          COUNT(*) FILTER (WHERE status = 'Em Busca') AS missoes_em_busca
+        FROM missoes
+      )
+      SELECT 
+        d.total_demandas,
+        d.demandas_mes,
+        m.total_missoes,
+        m.missoes_locadas,
+        m.missoes_encontradas,
+        m.missoes_em_busca,
+        ROUND((m.missoes_locadas::numeric / NULLIF(m.total_missoes, 0)) * 100, 1) AS taxa_sucesso
+      FROM demandas_resumo d, missoes_resumo m;
+    `);
 
-    const taxaSucesso = totalMissoes.rows[0].count > 0
-      ? ((missoesLocadas.rows[0].count / totalMissoes.rows[0].count) * 100).toFixed(1)
-      : 0;
-
-    res.json({
-      totalDemandas: parseInt(totalDemandas.rows[0].count),
-      demandasMes: parseInt(demandasMes.rows[0].count),
-      totalMissoes: parseInt(totalMissoes.rows[0].count),
-      missoesLocadas: parseInt(missoesLocadas.rows[0].count),
-      taxaSucesso: taxaSucesso,
-    });
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error('Erro ao gerar dashboard:', error);
-    res.status(500).json({ error: 'Erro ao gerar relatório do dashboard' });
+    console.error('Erro ao gerar relatório de dashboard:', error);
+    res.status(500).json({ erro: 'Erro ao gerar relatório de dashboard' });
   }
 });
 
-// Rota de performance dos captadores
+
+// ================================
+// Relatórios - Performance Captadores
+// ================================
 app.get('/api/relatorios/performance-captadores', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -661,10 +678,10 @@ app.get('/api/relatorios/performance-captadores', async (req, res) => {
         COALESCE(m.captador_responsavel, 'Não definido') AS captador_nome,
         COALESCE(m.regiao_bairro, 'Não definida') AS regiao,
         COUNT(m.id) AS total_missoes,
-        SUM(CASE WHEN m.status = 'Locado' THEN 1 ELSE 0 END) AS missoes_locadas,
-        SUM(CASE WHEN m.status = 'Encontrado' THEN 1 ELSE 0 END) AS missoes_encontradas,
-        SUM(CASE WHEN m.status = 'Em busca' THEN 1 ELSE 0 END) AS missoes_em_busca,
-        ROUND((SUM(CASE WHEN m.status = 'Locado' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(m.id), 0)) * 100, 1) AS taxa_sucesso
+        COUNT(*) FILTER (WHERE m.status = 'Locado') AS missoes_locadas,
+        COUNT(*) FILTER (WHERE m.status = 'Encontrado') AS missoes_encontradas,
+        COUNT(*) FILTER (WHERE m.status = 'Em Busca') AS missoes_em_busca,
+        ROUND((COUNT(*) FILTER (WHERE m.status = 'Locado')::numeric / NULLIF(COUNT(m.id), 0)) * 100, 1) AS taxa_sucesso
       FROM missoes m
       GROUP BY m.captador_responsavel, m.regiao_bairro
       ORDER BY taxa_sucesso DESC NULLS LAST;
@@ -673,7 +690,7 @@ app.get('/api/relatorios/performance-captadores', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Erro ao gerar relatório de performance:', error);
-    res.status(500).json({ error: 'Erro ao gerar relatório de performance dos captadores' });
+    res.status(500).json({ erro: 'Erro ao gerar relatório de performance' });
   }
 });
 
