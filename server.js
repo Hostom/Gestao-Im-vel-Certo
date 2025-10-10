@@ -1,12 +1,3 @@
-
-/**
- * server.js - Imóvel Certo (updated)
- * - Added 'diretor' role
- * - Improved regional permission middleware
- * - Seeds default users (Diretor, Lidiane, Pedro) using password 'Adim2025'
- * - Uses DATABASE_URL and JWT_SECRET (with sensible defaults when provided)
- */
-
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
@@ -632,7 +623,9 @@ app.put("/api/usuarios/:id/inativar", authenticateToken, requireDiretor, async (
 app.get('/api/relatorios/dashboard', async (req, res) => {
 try {
 res.setHeader('Cache-Control', 'no-store'); // impede cache
-
+res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+res.setHeader('Pragma', 'no-cache');
+res.setHeader('Expires', '0');
 
 const result = await pool.query(`
 WITH demandas_resumo AS (
