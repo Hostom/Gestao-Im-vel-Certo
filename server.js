@@ -628,6 +628,102 @@ app.put("/api/usuarios/:id/inativar", authenticateToken, requireDiretor, async (
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
+// Rota do Dashboard (resumo geral)
+app.get('/api/relatorios/dashboard', async (req, res) => {
+  try {
+    const totalDemandas = await pool.query('SELECT COUNT(*) FROM demandas');
+    const demandasMes = await pool.query("SELECT COUNT(*) FROM demandas WHERE date_part('month', data_criacao) = date_part('month', CURRENT_DATE)");
+    const totalMissoes = await pool.query('SELECT COUNT(*) FROM missoes');
+    const missoesLocadas = await pool.query("SELECT COUNT(*) FROM missoes WHERE status = 'Locado'");
+
+    const taxaSucesso = totalMissoes.rows[0].count > 0
+      ? ((missoesLocadas.rows[0].count / totalMissoes.rows[0].count) * 100).toFixed(1)
+      : 0;
+
+    res.json({
+      totalDemandas: parseInt(totalDemandas.rows[0].count),
+      demandasMes: parseInt(demandasMes.rows[0].count),
+      totalMissoes: parseInt(totalMissoes.rows[0].count),
+      missoesLocadas: parseInt(missoesLocadas.rows[0].count),
+      taxaSucesso: taxaSucesso,
+    });
+  } catch (error) {
+    console.error('Erro ao gerar dashboard:', error);
+    res.status(500).json({ error: 'Erro ao gerar relatório do dashboard' });
+  }
+});
+
+// Rota de performance dos captadores
+app.get('/api/relatorios/performance-captadores', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        COALESCE(m.captador_responsavel, 'Não definido') AS captador_nome,
+        COALESCE(m.regiao_bairro, 'Não definida') AS regiao,
+        COUNT(m.id) AS total_missoes,
+        SUM(CASE WHEN m.status = 'Locado' THEN 1 ELSE 0 END) AS missoes_locadas,
+        SUM(CASE WHEN m.status = 'Encontrado' THEN 1 ELSE 0 END) AS missoes_encontradas,
+        SUM(CASE WHEN m.status = 'Em busca' THEN 1 ELSE 0 END) AS missoes_em_busca,
+        ROUND((SUM(CASE WHEN m.status = 'Locado' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(m.id), 0)) * 100, 1) AS taxa_sucesso
+      FROM missoes m
+      GROUP BY m.captador_responsavel, m.regiao_bairro
+      ORDER BY taxa_sucesso DESC NULLS LAST;
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Erro ao gerar relatório de performance:', error);
+    res.status(500).json({ error: 'Erro ao gerar relatório de performance dos captadores' });
+  }
+});
+
+// 🔹 Relatórios - Demandas detalhadas
+app.get('/api/relatorios/demandas', async (req, res) => {
+try {
+const result = await pool.query(`
+SELECT
+d.id,
+d.codigo_demanda,
+d.cliente_interessado,
+d.regiao_desejada,
+d.tipo_imovel,
+d.status,
+d.data_criacao,
+c.nome AS consultor_nome
+FROM demandas d
+LEFT JOIN consultores c ON d.consultor_solicitante = c.id
+ORDER BY d.data_criacao DESC;
+`);
+res.json(result.rows);
+} catch (error) {
+console.error('Erro ao gerar relatório de demandas:', error);
+res.status(500).json({ error: 'Erro ao gerar relatório de demandas' });
+}
+});
+
+
+// 🔹 Relatórios - Histórico de alterações e ações
+app.get('/api/relatorios/historico', async (req, res) => {
+try {
+const result = await pool.query(`
+SELECT
+h.id,
+h.acao,
+h.usuario_nome,
+h.data_acao,
+h.descricao,
+COALESCE(d.codigo_demanda, m.codigo_demanda) AS referencia
+FROM historico_acoes h
+LEFT JOIN demandas d ON h.demanda_id = d.id
+LEFT JOIN missoes m ON h.missao_id = m.id
+ORDER BY h.data_acao DESC;
+`);
+res.json(result.rows);
+} catch (error) {
+console.error('Erro ao gerar histórico:', error);
+res.status(500).json({ error: 'Erro ao gerar histórico' });
+}
+});
 
 // Inicializar DB e iniciar servidor
 initializeDb()
