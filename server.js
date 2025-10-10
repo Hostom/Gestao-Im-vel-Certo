@@ -641,7 +641,11 @@ missoes_resumo AS (
     COUNT(*) AS total_missoes,
     COUNT(*) FILTER (WHERE LOWER(status) = 'locado') AS missoes_locadas,
     COUNT(*) FILTER (WHERE LOWER(status) = 'encontrado') AS missoes_encontradas,
-    COUNT(*) FILTER (WHERE LOWER(status) = 'em busca') AS missoes_em_busca
+    COUNT(*) FILTER (WHERE LOWER(status) = 'em busca') AS missoes_em_busca,
+    ROUND(
+      (SUM(CASE WHEN LOWER(status) = 'concluida' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0)) * 100,
+      1
+    ) AS taxa_sucesso
   FROM missoes
 )
 SELECT 
@@ -651,18 +655,10 @@ SELECT
   COALESCE(m.missoes_locadas, 0) AS missoes_locadas,
   COALESCE(m.missoes_encontradas, 0) AS missoes_encontradas,
   COALESCE(m.missoes_em_busca, 0) AS missoes_em_busca,
-  COALESCE(
-    ROUND(
-      (SUM(CASE WHEN LOWER(status) = 'concluida' THEN 1 ELSE 0 END)::numeric / NULLIF(COUNT(*), 0)) * 100,
-      1
-    ),
-    0
-  ) AS taxa_sucesso
-FROM missoes m
-CROSS JOIN demandas_resumo d;
+  COALESCE(m.taxa_sucesso, 0) AS taxa_sucesso
+FROM demandas_resumo d
+CROSS JOIN missoes_resumo m;
 `);
-
-
 
 const data = result.rows[0] || {
 total_demandas: 0,
