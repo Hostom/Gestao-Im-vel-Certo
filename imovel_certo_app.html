@@ -726,20 +726,34 @@
                 loadPerformanceData();
             }, []);
 
-            const loadDashboardData = async () => {
-                setLoading(true);
-                try {
-                    const response = await apiRequest('/api/relatorios/dashboard');
-                    if (response.ok) {
-                        const data = await response.json();
-                        setDashboardData(data);
-                    }
-                } catch (error) {
-                    console.error('Erro ao carregar dashboard:', error);
-                } finally {
-                    setLoading(false);
-                }
-            };
+            cconst loadDashboardData = async () => {
+  setLoading(true);
+  try {
+    const response = await apiRequest('/api/relatorios/dashboard');
+    if (response.ok) {
+      const data = await response.json();
+
+      // Garante que todos os campos existam e não sejam NaN
+      const safeData = {
+        total_demandas: data.total_demandas || 0,
+        demandas_mes: data.demandas_mes || 0,
+        total_missoes: data.total_missoes || 0,
+        missoes_locadas: data.missoes_locadas || 0,
+        missoes_encontradas: data.missoes_encontradas || 0,
+        missoes_em_busca: data.missoes_em_busca || 0,
+        taxa_sucesso: isNaN(data.taxa_sucesso) ? 0 : data.taxa_sucesso || 0
+      };
+
+      console.log("📊 Dados do dashboard carregados:", safeData);
+      setDashboardData(safeData);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dados do dashboard:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
             const loadPerformanceData = async () => {
                 try {
