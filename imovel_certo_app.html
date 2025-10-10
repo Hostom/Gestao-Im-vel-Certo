@@ -726,7 +726,7 @@
                 loadPerformanceData();
             }, []);
 
-            cconst loadDashboardData = async () => {
+            const loadDashboardData = async () => {
   setLoading(true);
   try {
     const response = await apiRequest('/api/relatorios/dashboard');
