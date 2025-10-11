@@ -63,33 +63,37 @@
         };
 
         // Utilitário para fazer requisições autenticadas
-        const apiRequest = async (endpoint, options = {}) => {
-            const token = localStorage.getItem('token');
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }),
-                    ...options.headers,
-                },
-                ...options,
-            };
+       const apiRequest = async (endpoint, options = {}) => {
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...options.headers,
+  };
 
-            try {
-                const response = await fetch(`${API_URL}${endpoint}`, config);
-                
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    window.location.reload();
-                    return;
-                }
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+      body: options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined,
+    });
 
-                return response;
-            } catch (error) {
-                console.error('Erro na requisição:', error);
-                throw new Error('Erro de conexão com o servidor');
-            }
-        };
+    // Se o token expirou ou for inválido
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      alert('Sessão expirada. Faça login novamente.');
+      window.location.reload();
+      return;
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Erro na requisição:', error);
+    throw new Error('Erro de conexão com o servidor');
+  }
+};
+
 
         // Context para autenticação
         const AuthContext = React.createContext();
