@@ -18,7 +18,7 @@ const pool = new Pool({
     }
 });
 
-import bcrypt from "bcrypt";
+const bcrypt = require("bcrypt");
 
 async function corrigirSenhas() {
   try {
@@ -31,7 +31,6 @@ async function corrigirSenhas() {
 }
 
 corrigirSenhas();
-
 
 // Função para inicializar e garantir estrutura do DB
 async function initializeDb() {
