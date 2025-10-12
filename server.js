@@ -18,6 +18,21 @@ const pool = new Pool({
     }
 });
 
+import bcrypt from "bcrypt";
+
+async function corrigirSenhas() {
+  try {
+    const senhaHash = await bcrypt.hash("Adim2025", 10);
+    await pool.query("UPDATE usuarios SET senha = $1", [senhaHash]);
+    console.log("✅ Todas as senhas foram atualizadas com sucesso!");
+  } catch (err) {
+    console.error("Erro ao corrigir senhas:", err);
+  }
+}
+
+corrigirSenhas();
+
+
 // Função para inicializar e garantir estrutura do DB
 async function initializeDb() {
     let client;
