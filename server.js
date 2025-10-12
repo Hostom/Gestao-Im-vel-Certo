@@ -18,7 +18,6 @@ const pool = new Pool({
     }
 });
 
-const bcrypt = require("bcrypt");
 
 async function corrigirSenhas() {
   try {
