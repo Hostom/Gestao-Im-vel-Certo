@@ -327,7 +327,7 @@ app.get("/api/missoes", authenticateToken, async (req, res) => {
         const placeholders = regioes.map((_, i) => `$${params.length + i + 1}`).join(",");
         whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
         params = params.concat(regioes);
-
+    }
 
     if (whereClauses.length > 0) {
         query += " WHERE " + whereClauses.join(" AND ");
