@@ -1149,6 +1149,25 @@ const response = await apiRequest('/api/demandas', {
                 }
             };
 
+            const syncMissions = async () => {
+                if (!window.confirm('Deseja sincronizar as demandas com as missões? Isso criará missões para demandas que ainda não possuem.')) {
+                    return;
+                }
+                try {
+                    const response = await apiRequest('/api/sync-missions', { method: 'POST' });
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert(`Sincronização concluída!\n\nMissões criadas: ${result.missionsCreated}\nMissões já existentes: ${result.missionsAlreadyExist}\nDemandas sem captador: ${result.demandsWithoutCaptador}`);
+                        loadData(); // Recarregar os dados após a sincronização
+                    } else {
+                        alert('Erro ao sincronizar missões. Verifique o console para mais detalhes.');
+                    }
+                } catch (error) {
+                    console.error('Erro ao sincronizar missões:', error);
+                    alert('Erro ao sincronizar missões. Verifique o console para mais detalhes.');
+                }
+            };
+
             const renderContent = () => {
                 if (loading) {
                     return (
@@ -1187,6 +1206,19 @@ const response = await apiRequest('/api/demandas', {
                 <div className="flex">
                     <Sidebar activeView={activeView} setActiveView={setActiveView} user={user} />
                     <div className="ml-64 flex-1 min-h-screen bg-gray-50">
+                        {(user.tipo === 'admin' || user.tipo === 'diretor') && (
+                            <div className="p-4 bg-yellow-50 border-b border-yellow-200">
+                                <button 
+                                    onClick={syncMissions}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                                >
+                                    🔄 Sincronizar Demandas com Missões
+                                </button>
+                                <span className="ml-3 text-sm text-gray-600">
+                                    Clique para criar missões para demandas que ainda não possuem.
+                                </span>
+                            </div>
+                        )}
                         {renderContent()}
                     </div>
                 </div>
