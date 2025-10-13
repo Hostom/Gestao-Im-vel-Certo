@@ -259,16 +259,16 @@ app.post("/api/login", async (req, res) => {
         const senhaValida = await bcrypt.compare(senha, user.senha);
         if (!senhaValida) return res.status(401).json({ error: "Credenciais inválidas" });
 
-       const token = jwt.sign(
+      const token = jwt.sign(
   {
     id: user.id,
     email: user.email,
     nome: user.nome,
-    cargo: user.cargo,
+    tipo: user.tipo,
     regiao: user.regiao,
-    regioes_gerenciadas: user.regioes_gerenciadas
+    regioes_responsavel: user.regioes_responsavel
   },
-  process.env.JWT_SECRET
+  JWT_SECRET
 );
 
 res.json({
@@ -277,9 +277,9 @@ res.json({
     id: user.id,
     nome: user.nome,
     email: user.email,
-    cargo: user.cargo,
+    tipo: user.tipo,
     regiao: user.regiao,
-    regioes_gerenciadas: user.regioes_gerenciadas
+    regioes_responsavel: user.regioes_responsavel
   }
 });
 
