@@ -559,6 +559,7 @@ const response = await apiRequest('/api/demandas', {
             const columns = ['Em busca', 'Encontrado', 'Locado'];
 
             useEffect(() => {
+                console.log('[MissoesKanban] missoesExternas recebidas:', missoesExternas);
                 if (missoesExternas) {
                     setMissoes(missoesExternas);
                     setLoading(false);
@@ -646,6 +647,8 @@ const response = await apiRequest('/api/demandas', {
             if (loading) return <div className="flex justify-center items-center h-64">Carregando missões...</div>;
 
             const missoesExibidas = user.tipo === 'captador' ? missoes.filter(m => m.captador_responsavel === user.nome) : missoes;
+            console.log('[MissoesKanban] missoesExibidas:', missoesExibidas);
+            console.log('[MissoesKanban] Status das missões:', missoesExibidas.map(m => ({id: m.id, codigo: m.codigo_demanda, status: m.status})));
 
             return (
                 <div>
