@@ -81,6 +81,8 @@ async function initializeDb() {
                 descricao_busca TEXT NOT NULL,
                 status TEXT DEFAULT 'Em busca' CHECK (status IN ('Em busca', 'Encontrado', 'Locado')),
                 data_missao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                data_encontrado TIMESTAMP,
+                data_locado TIMESTAMP,
                 data_retorno TIMESTAMP,
                 criado_por_id INTEGER REFERENCES usuarios(id)
             );
@@ -244,6 +246,50 @@ const requireDiretor = (req, res, next) => {
 };
 
 // --- Rotas de autenticação ---
+app.post("/api/demandas", authenticateToken, async (req, res) => {
+    const { codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes } = req.body;
+    const criado_por_id = req.user.id;
+
+    // Determinar regiao_demanda com base em regiao_desejada
+    let regiao_demanda = 'Geral';
+    if (regiao_desejada.includes('Itapema')) {
+        regiao_demanda = 'Itapema';
+    } else if (regiao_desejada.includes('Balneario_Camboriu') || regiao_desejada.includes('Balneário Camboriú')) {
+        regiao_demanda = 'Balneario_Camboriu';
+    } else if (regiao_desejada.includes('Itajai') || regiao_desejada.includes('Itajaí')) {
+        regiao_demanda = 'Itajai';
+    }
+
+    try {
+        // Inserir na tabela demandas
+        const demandaResult = await pool.query(
+            `INSERT INTO demandas (
+                codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, criado_por_id, regiao_demanda
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+            [codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, criado_por_id, regiao_demanda]
+        );
+        const demanda_id = demandaResult.rows[0].id;
+
+        // Criar uma missão associada
+        // Assumindo que o captador_responsavel é o consultor_locacao e que o consultor_solicitante é o usuário logado
+        // Você pode precisar de uma lógica mais sofisticada para encontrar o captador_id
+        const captadorResult = await pool.query("SELECT id FROM usuarios WHERE nome = $1 AND tipo = 'captador'", [consultor_locacao]);
+        const captador_id = captadorResult.rows.length > 0 ? captadorResult.rows[0].id : null;
+
+        await pool.query(
+            `INSERT INTO missoes (
+                demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, criado_por_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [demanda_id, codigo_demanda, consultor_locacao, captador_id, req.user.nome, regiao_desejada, caracteristicas_desejadas, criado_por_id]
+        );
+
+        res.status(201).json({ message: "Demanda e missão criadas com sucesso!" });
+    } catch (error) {
+        console.error("Erro ao criar demanda e missão:", error);
+        res.status(500).json({ error: "Erro interno do servidor ao criar demanda e missão." });
+    }
+});
+
 app.post("/api/login", async (req, res) => {
     const { email, senha } = req.body;
     if (!email || !senha) return res.status(400).json({ error: "Email e senha são obrigatórios" });
@@ -348,6 +394,130 @@ app.get("/api/missoes", authenticateToken, async (req, res) => {
 
 
 // GET /api/demandas
+app.put("/api/missoes/:id/status", authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const user = req.user;
+
+    if (!status || !["Em busca", "Encontrado", "Locado"].includes(status)) {
+        return res.status(400).json({ error: "Status inválido." });
+    }
+
+    try {
+        let updateQuery = `UPDATE missoes SET status = $1`;
+        const queryParams = [status, id];
+        let paramIndex = 2;
+
+        if (status === "Encontrado") {
+            updateQuery += `, data_encontrado = CURRENT_TIMESTAMP`;
+        } else if (status === "Locado") {
+            updateQuery += `, data_locado = CURRENT_TIMESTAMP`;
+        }
+
+        // Adicionar lógica de permissão para atualização de status
+        // Captadores só podem atualizar suas próprias missões
+        // Gerentes regionais podem atualizar missões em suas regiões
+        // Diretores/Admin podem atualizar qualquer missão
+        let permissionClause = ``;
+        if (user.tipo === "captador") {
+            permissionClause = ` AND captador_id = $${paramIndex++}`;
+            queryParams.push(user.id);
+        } else if (user.tipo === "gerente_regional") {
+            // Precisa verificar a região da missão
+            const missionRegionResult = await pool.query(
+                `SELECT d.regiao_demanda FROM missoes m JOIN demandas d ON m.demanda_id = d.id WHERE m.id = $1`,
+                [id]
+            );
+            if (missionRegionResult.rows.length === 0) {
+                return res.status(404).json({ error: "Missão não encontrada." });
+            }
+            const missionRegion = missionRegionResult.rows[0].regiao_demanda;
+            const userRegions = user.regioes_responsavel ? user.regioes_responsavel.split(",").map(r => r.trim()) : [user.regiao];
+
+            if (!userRegions.includes(missionRegion)) {
+                return res.status(403).json({ error: "Acesso negado. Gerente regional só pode atualizar missões em suas regiões." });
+            }
+        }
+
+        updateQuery += ` WHERE id = $${paramIndex++}${permissionClause} RETURNING *`;
+
+        const { rows } = await pool.query(updateQuery, queryParams);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Missão não encontrada ou sem permissão para atualizar." });
+        }
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error("Erro ao atualizar status da missão:", error);
+        res.status(500).json({ error: "Erro interno do servidor ao atualizar status da missão." });
+    }
+});
+
+app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
+    const user = req.user;
+    const { regiao, data_inicio, data_fim } = req.query;
+
+    let query = `
+        SELECT
+            m.id,
+            m.codigo_demanda,
+            m.status,
+            m.data_missao,
+            m.data_encontrado,
+            m.data_locado,
+            d.regiao_demanda,
+            d.consultor_locacao,
+            EXTRACT(EPOCH FROM (m.data_encontrado - m.data_missao)) / 3600 AS tempo_em_busca_horas,
+            EXTRACT(EPOCH FROM (m.data_locado - m.data_encontrado)) / 3600 AS tempo_encontrado_locado_horas
+        FROM missoes m
+        JOIN demandas d ON m.demanda_id = d.id
+    `;
+    let whereClauses = [];
+    let params = [];
+    let paramIndex = 1;
+
+    // Lógica de permissão
+    if (user.tipo === "captador") {
+        whereClauses.push(`m.captador_id = $${paramIndex++}`);
+        params.push(user.id);
+    } else if (user.tipo === "gerente_regional") {
+        const userRegions = user.regioes_responsavel ? user.regioes_responsavel.split(",").map(r => r.trim()) : [user.regiao];
+        const placeholders = userRegions.map((_, i) => `$${paramIndex + i}`).join(",");
+        whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
+        params = params.concat(userRegions);
+        paramIndex += userRegions.length;
+    }
+
+    // Filtros adicionais
+    if (regiao) {
+        whereClauses.push(`d.regiao_demanda = $${paramIndex++}`);
+        params.push(regiao);
+    }
+    if (data_inicio) {
+        whereClauses.push(`m.data_missao >= $${paramIndex++}`);
+        params.push(data_inicio);
+    }
+    if (data_fim) {
+        whereClauses.push(`m.data_missao <= $${paramIndex++}`);
+        params.push(data_fim);
+    }
+
+    if (whereClauses.length > 0) {
+        query += " WHERE " + whereClauses.join(" AND ");
+    }
+
+    query += " ORDER BY m.data_missao DESC";
+
+    try {
+        const { rows } = await pool.query(query, params);
+        res.json(rows);
+    } catch (error) {
+        console.error("Erro ao gerar relatório de performance:", error);
+        res.status(500).json({ error: "Erro interno do servidor ao gerar relatório de performance." });
+    }
+});
+
 app.get("/api/demandas", authenticateToken, async (req, res) => {
     let query = `SELECT * FROM demandas ORDER BY data_solicitacao DESC`;
     let params = [];
@@ -913,3 +1083,4 @@ app.post("/api/sync-missions", authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor ao sincronizar missões." });
     }
 });
+
