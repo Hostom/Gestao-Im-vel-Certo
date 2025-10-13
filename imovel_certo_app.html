@@ -84,7 +84,8 @@
       localStorage.removeItem('user');
       alert('Sessão expirada. Faça login novamente.');
       window.location.reload();
-      return;
+      // Retornar uma Promise que nunca resolve para evitar que o código continue
+      return new Promise(() => {});
     }
 
     return response;
