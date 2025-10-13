@@ -264,7 +264,7 @@ app.post("/api/login", async (req, res) => {
     id: user.id,
     email: user.email,
     nome: user.nome,
-    tipo: user.tipo,
+    cargo: user.tipo,
     regiao: user.regiao,
     regioes_responsavel: user.regioes_responsavel
   },
@@ -277,7 +277,7 @@ res.json({
     id: user.id,
     nome: user.nome,
     email: user.email,
-    tipo: user.tipo,
+    cargo: user.tipo,
     regiao: user.regiao,
     regioes_responsavel: user.regioes_responsavel
   }
