@@ -110,17 +110,17 @@
                     const parsedUser = JSON.parse(userData);
                     setUser(parsedUser);
 
-                    let cargo = parsedUser?.cargo;
-                    if (cargo === 'gerente_regional') {
-                        cargo = 'gerente';
-                    } else if (cargo === 'diretor') {
-                        cargo = 'diretor';
-                    } else if (cargo === 'administrador') {
-                        cargo = 'administrador';
-                    } else {
-                        cargo = 'captador'; // Fallback se o cargo não estiver definido ou for desconhecido
+                    const cargoDoUsuario = parsedUser?.cargo;
+                    let roleParaDefinir = 'captador'; // Padrão
+
+                    if (cargoDoUsuario === 'diretor') {
+                        roleParaDefinir = 'diretor';
+                    } else if (cargoDoUsuario === 'gerente_regional') {
+                        roleParaDefinir = 'gerente';
+                    } else if (cargoDoUsuario === 'admin') { // Assumindo 'admin' para administrador
+                        roleParaDefinir = 'administrador';
                     }
-                    localStorage.setItem('role', cargo);
+                    localStorage.setItem('role', roleParaDefinir);
                 }
 
                 setLoading(false);
@@ -150,7 +150,7 @@
                         roleParaDefinir = 'diretor';
                     } else if (cargoDoUsuario === 'gerente_regional') {
                         roleParaDefinir = 'gerente';
-                    } else if (cargoDoUsuario === 'administrador') {
+                    } else if (cargoDoUsuario === 'admin') { // Assumindo 'admin' para administrador
                         roleParaDefinir = 'administrador';
                     }
                     localStorage.setItem('role', roleParaDefinir);    
