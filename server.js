@@ -459,7 +459,12 @@ const regiaoFinal = normalizarRegiao(regiaoDemanda || regiaoDesejada || req.user
     }
 
     // Verificar permissão para a região (usa req.regioesPermitidas definido pelo middleware)
-    if (!req.regioesPermitidas || !req.regioesPermitidas.includes(mapped.regiao_demanda)) {
+    // Normalizar as regiões permitidas para comparação
+    const regioesPermitidasNormalizadas = req.regioesPermitidas ? req.regioesPermitidas.map(normalizarRegiao) : [];
+    console.log("Regiões permitidas normalizadas:", regioesPermitidasNormalizadas);
+    console.log("Região da demanda normalizada:", mapped.regiao_demanda);
+    
+    if (!regioesPermitidasNormalizadas.includes(mapped.regiao_demanda)) {
         return res.status(403).json({ error: "Acesso negado. Você não tem permissão para adicionar demandas nesta região." });
     }
 
