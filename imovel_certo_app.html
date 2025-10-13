@@ -369,11 +369,15 @@
                 e.preventDefault();
                 setIsSubmitting(true);
                 try {
-                    const response = 
-                    await apiRequest('/api/demandas', {
-                    method: 'POST',
-                    body: formData,
-                });
+                   const token = localStorage.getItem('token'); // Recupera o token do login
+
+const response = await apiRequest('/api/demandas', {
+    method: 'POST',
+    headers: {
+        'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+});
 
                     
                     if (!response.ok) {
