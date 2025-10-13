@@ -113,12 +113,12 @@
                     let cargo = parsedUser?.cargo;
                     if (cargo === 'gerente_regional') {
                         cargo = 'gerente';
-                    } else if (cargo === 'administrador') {
-                        cargo = 'administrador'; // Adiciona tratamento para administrador
                     } else if (cargo === 'diretor') {
-                        cargo = 'diretor'; // Adiciona tratamento para diretor
+                        cargo = 'diretor';
+                    } else if (cargo === 'administrador') {
+                        cargo = 'administrador';
                     } else {
-                        cargo = 'captador'; // Padrão para captador se não for nenhum dos acima
+                        cargo = 'captador';
                     }
                     localStorage.setItem('role', cargo);
                     console.log('Cargo carregado:', cargo);
@@ -940,15 +940,13 @@
             const getUserTitle = () => {
                 if (user.cargo === 'diretor') return 'Diretor';
                 if (user.cargo === 'gerente_regional') return 'Gerente Regional';
-                if (user.cargo === 'administrador') return 'Administrador';
                 return 'Captador';
             };
 
             const menuItems = [
-                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['diretor', 'gerente_regional', 'captador', 'administrador'] },
-                { id: 'kanban', label: 'Missões', icon: 'Columns', roles: ['diretor', 'gerente_regional', 'captador', 'administrador'] },
-                { id: 'relatorios', label: 'Relatórios', icon: 'Trophy', roles: ['diretor', 'gerente_regional'] },
-                { id: 'configuracoes', label: 'Configurações', icon: 'Settings', roles: ['administrador'] }
+                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['diretor', 'gerente_regional', 'captador'] },
+                { id: 'kanban', label: 'Missões', icon: 'Columns', roles: ['diretor', 'gerente_regional', 'captador'] },
+                { id: 'relatorios', label: 'Relatórios', icon: 'Trophy', roles: ['diretor', 'gerente_regional'] }
             ];
 
             const filteredMenuItems = menuItems.filter(item => item.roles.includes(user.cargo));
@@ -1002,18 +1000,6 @@
             );
         };
 
-        // Página de Configurações
-        const ConfiguracoesPage = () => {
-            return (
-                <div>
-                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Configurações</h2>
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <p className="text-gray-600">Página de configurações em desenvolvimento...</p>
-                    </div>
-                </div>
-            );
-        };
-
         // Dashboard Principal
         const Dashboard = () => {
             const { user, logout } = useAuth();
@@ -1052,8 +1038,6 @@
                         return <MissoesKanban user={user} missoesExternas={missoes} onRefresh={handleRefresh} />;
                     case 'relatorios':
                         return <RelatoriosPage />;
-                    case 'configuracoes':
-                        return <ConfiguracoesPage />;
                     default:
                         return <div>Selecione uma opção no menu</div>;
                 }
@@ -1080,7 +1064,7 @@
                                     </p>
                                 </div>
                                 
-                                {(user.cargo === 'diretor' || user.cargo === 'gerente_regional' || user.cargo === 'administrador') && (
+                                {(user.cargo === 'diretor' || user.cargo === 'gerente_regional') && (
                                     <button
                                         onClick={() => setShowNovaDemanda(true)}
                                         className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
