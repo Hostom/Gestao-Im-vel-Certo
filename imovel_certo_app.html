@@ -111,14 +111,15 @@
                     setUser(parsedUser);
 
                     let cargo = parsedUser?.cargo;
-                    if (cargo === 'gerente_regional') {
+                    console.log("parsedUser?.cargo antes da lógica:", cargo);
+                    if (!cargo) {
+                        cargo = 'captador'; // Fallback se o cargo não estiver definido
+                    } else if (cargo === 'gerente_regional') {
                         cargo = 'gerente';
                     } else if (cargo === 'diretor') {
                         cargo = 'diretor';
                     } else if (cargo === 'administrador') {
                         cargo = 'administrador';
-                    } else {
-                        cargo = 'captador';
                     }
                     localStorage.setItem('role', cargo);
                     console.log('Cargo carregado:', cargo);
@@ -144,17 +145,18 @@
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
 
-                    const cargo = data.user.cargo;
+                    const cargoDoUsuario = data.user.cargo;
+                    console.log("data.user.cargo antes da lógica:", cargoDoUsuario);
+                    let roleParaDefinir = 'captador'; // Padrão
 
-                    if (cargo === 'diretor') {
-                        localStorage.setItem('role', 'diretor');
-                    } else if (cargo === 'gerente_regional') {
-                        localStorage.setItem('role', 'gerente');
-                    } else if (cargo === 'administrador') {
-                        localStorage.setItem('role', 'administrador');
-                    } else {
-                        localStorage.setItem('role', 'captador');
+                    if (cargoDoUsuario === 'diretor') {
+                        roleParaDefinir = 'diretor';
+                    } else if (cargoDoUsuario === 'gerente_regional') {
+                        roleParaDefinir = 'gerente';
+                    } else if (cargoDoUsuario === 'administrador') {
+                        roleParaDefinir = 'administrador';
                     }
+                    localStorage.setItem('role', roleParaDefinir);
                     
                     console.log('Cargo definido:', cargo);    
                     setUser(data.user);
