@@ -549,9 +549,54 @@ const response = await apiRequest('/api/demandas', {
         };
 
         // Componente de Missões Kanban
-        const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
-            const [missoes, setMissoes] = useState(missoesExternas || []);
+        const MissoesKanban = ({ user, onRefresh }) => {
+            const [missoes, setMissoes] = useState([]);
             const [selectedMissao, setSelectedMissao] = useState(null);
+            const [interacoes, setInteracoes] = useState([]);
+            const [novaInteracao, setNovaInteracao] = useState("");
+            const [loading, setLoading] = useState(true);
+
+            const columns = ["Em busca", "Encontrado", "Locado"];
+
+            const loadMissoes = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const response = await apiRequest("/api/missoes");
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Filtrar missões no frontend para captadores, se o backend não o fez
+                        const filteredData = user.tipo === 'captador' 
+                            ? data.filter(missao => missao.captador_id === user.id) 
+                            : data;
+                        setMissoes(filteredData);
+                    } else {
+                        console.error("loadMissoes response not ok", response);
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar missões:", error);
+                } finally {
+                    setLoading(false);
+                }
+            }, [user]);
+
+            useEffect(() => {
+                loadMissoes();
+            }, [loadMissoes, onRefresh]); // Adicionado onRefresh para recarregar quando uma nova demanda é criada
+
+            const loadInteracoes = async (missaoId) => {
+                try {
+                    const response = await apiRequest(`/api/missoes/${missaoId}/interacoes`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setInteracoes(data);
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar interações:", error);
+                }
+            };
+
+            const updateMissaoStatus = async (missaoId, novoStatus) => {
+
             const [interacoes, setInteracoes] = useState([]);
             const [novaInteracao, setNovaInteracao] = useState('');
             const [loading, setLoading] = useState(true);
@@ -1190,7 +1235,8 @@ const response = await apiRequest('/api/demandas', {
                     case 'demandas':
                         return <NovaDemanda onDemandaCriada={loadData} />;
                     case 'missoes':
-                        return <MissoesKanban user={user} missoesExternas={missoes} onRefresh={loadData} />;
+                        return <MissoesKanban user={user} onRefresh={loadData} />;
+
                     default:
                         return (
                             <div className="p-6">
