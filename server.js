@@ -806,3 +806,80 @@ initializeDb()
         console.error("Falha ao inicializar o servidor:", err);
         process.exit(1);
     });
+
+
+// POST /api/sync-missions - Sincronizar demandas com missões (apenas para admin/diretor)
+app.post("/api/sync-missions", authenticateToken, async (req, res) => {
+    if (!(req.user.tipo === "admin" || req.user.tipo === "diretor")) {
+        return res.status(403).json({ error: "Acesso negado. Apenas administradores/diretor podem sincronizar missões." });
+    }
+
+    let missionsCreatedCount = 0;
+    let missionsAlreadyExistCount = 0;
+    let demandsWithoutCaptador = 0;
+
+    try {
+        const client = await pool.connect();
+
+        // 1. Obter todas as demandas
+        const allDemandas = await client.query(`SELECT * FROM demandas`);
+
+        for (const demanda of allDemandas.rows) {
+            // 2. Verificar se já existe uma missão para esta demanda
+            const existingMission = await client.query(
+                `SELECT id FROM missoes WHERE demanda_id = $1`,
+                [demanda.id]
+            );
+
+            if (existingMission.rows.length === 0) {
+                // 3. Se não existir, criar uma nova missão
+                // Lógica para encontrar captadores na mesma região da demanda (duplicada da rota POST /api/demandas)
+                const captadoresNaRegiao = await client.query(
+                    `SELECT id, nome FROM usuarios WHERE tipo = 'captador' AND regiao = $1`,
+                    [demanda.regiao_demanda]
+                );
+
+                if (captadoresNaRegiao.rows.length > 0) {
+                    const captadorAtribuido = captadoresNaRegiao.rows[0];
+
+                    // Construir a descrição da busca para a missão
+                    const descricaoBusca = `Cliente: ${demanda.cliente_interessado || 'N/A'} | Contato: ${demanda.contato || 'N/A'} | Tipo: ${demanda.tipo_imovel || 'N/A'} | Faixa Aluguel: ${demanda.faixa_aluguel || 'N/A'} | Características: ${demanda.caracteristicas_desejadas || 'N/A'}`;
+
+                    await client.query(
+                        `INSERT INTO missoes (demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status, criado_por_id)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                        [
+                            demanda.id,
+                            demanda.codigo_demanda,
+                            captadorAtribuido.nome,
+                            captadorAtribuido.id,
+                            demanda.consultor_locacao,
+                            demanda.regiao_desejada,
+                            descricaoBusca,
+                            'Em busca',
+                            demanda.criado_por_id // Usar o criado_por_id da demanda
+                        ]
+                    );
+                    missionsCreatedCount++;
+                } else {
+                    console.log(`Nenhum captador encontrado para a região ${demanda.regiao_demanda} para a demanda ${demanda.codigo_demanda}. Missão não criada.`);
+                    demandsWithoutCaptador++;
+                }
+            } else {
+                missionsAlreadyExistCount++;
+            }
+        }
+
+        client.release();
+        res.status(200).json({
+            message: "Sincronização de missões concluída.",
+            missionsCreated: missionsCreatedCount,
+            missionsAlreadyExist: missionsAlreadyExistCount,
+            demandsWithoutCaptador: demandsWithoutCaptador,
+        });
+    } catch (err) {
+        console.error("Erro ao sincronizar missões:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao sincronizar missões." });
+    }
+});
+
