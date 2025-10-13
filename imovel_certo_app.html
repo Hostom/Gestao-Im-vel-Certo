@@ -947,12 +947,14 @@
             };
 
             const menuItems = [
-                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['diretor', 'gerente_regional', 'captador'] },
-                { id: 'kanban', label: 'Missões', icon: 'Columns', roles: ['diretor', 'gerente_regional', 'captador'] },
-                { id: 'relatorios', label: 'Relatórios', icon: 'Trophy', roles: ['diretor', 'gerente_regional'] }
+                { id: 'nova-demanda', label: 'Criar Demanda', icon: 'FilePlus', roles: ['diretor', 'gerente', 'administrador'] },
+                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['diretor', 'gerente', 'captador', 'administrador'] },
+                { id: 'kanban', label: 'Missões', icon: 'Columns', roles: ['diretor', 'gerente', 'captador', 'administrador'] },
+                { id: 'relatorios', label: 'Relatórios', icon: 'Trophy', roles: ['diretor', 'gerente', 'administrador'] },
+                { id: 'gerenciar-usuarios', label: 'Gerenciar Usuários', icon: 'Users', roles: ['administrador'] },
             ];
 
-            const filteredMenuItems = menuItems.filter(item => item.roles.includes(user.cargo));
+            const filteredMenuItems = menuItems.filter(item => item.roles.includes(localStorage.getItem("role")));
 
             return (
                 <div className="w-64 bg-white shadow-lg h-screen flex flex-col">
