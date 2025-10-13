@@ -105,9 +105,16 @@
             useEffect(() => {
                 const token = localStorage.getItem('token');
                 const userData = localStorage.getItem('user');
-                
                 if (token && userData) {
-                    setUser(JSON.parse(userData));
+  const user = JSON.parse(userData);
+  setUser(user);
+
+  // 🟦 Ajuste para garantir que o cargo seja reconhecido corretamente
+  const cargo = user?.cargo || 'captador';
+  localStorage.setItem('role', cargo);
+  console.log('Cargo carregado:', cargo);
+}
+
                 }
                 setLoading(false);
             }, []);
@@ -138,6 +145,7 @@
                 } else {
                           localStorage.setItem('role', 'captador');
                 }
+                    
                     console.log('Cargo definido:', cargo);    
                     setUser(data.user);
                     return data;
