@@ -131,7 +131,7 @@ async function initializeDb() {
             const senhaHash = await bcrypt.hash("Adim2025", 10);
 
             const inserts = [
-                ["Administrador", "admin@adimimoveis.com.br", senhaHash, "admin", "Geral", null],
+                ["Administrador", "adim@adimimoveis.com.br", senhaHash, "admin", "Geral", null],
                 ["Diretor Geral", "diretor@adimimoveis.com.br", senhaHash, "diretor", "Geral", null],
                 ["Lidiane Kolodi", "lidiane@adimimoveis.com.br", senhaHash, "gerente_regional", "Balneario_Camboriu", "Balneario_Camboriu,Itajai"],
                 ["Pedro (Gerente Itapema)", "pedro@adimimoveis.com.br", senhaHash, "gerente_regional", "Itapema", "Itapema"],
