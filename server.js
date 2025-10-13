@@ -537,6 +537,42 @@ const regiaoFinal = normalizarRegiao(regiaoDemanda || regiaoDesejada || req.user
 });
 
 // POST /api/missoes (mantido parecido)
+app.get("/api/missoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const user = req.user;
+    const regioesPermitidas = req.regioesPermitidas;
+
+    let query = `SELECT m.*, u.nome as captador_nome_completo FROM missoes m JOIN usuarios u ON m.captador_id = u.id WHERE 1=1`;
+    const queryParams = [];
+    let paramIndex = 1;
+
+    // Lógica de filtro por região para gerentes regionais e captadores
+    if (user.tipo === "gerente_regional") {
+        // Gerente regional vê missões de suas regiões e missões de captadores sob sua responsabilidade
+        // (Assumindo que captadores sob sua responsabilidade estão nas regioesPermitidas)
+        if (regioesPermitidas && regioesPermitidas.length > 0) {
+            query += ` AND m.regiao_bairro = ANY($${paramIndex++}::text[])`;
+            queryParams.push(regioesPermitidas);
+        }
+    } else if (user.tipo === "captador") {
+        // Captador vê apenas suas próprias missões
+        query += ` AND m.captador_id = $${paramIndex++}`; // Filtrar por captador_id
+        queryParams.push(user.id);
+    }
+    // Admin e Diretor veem todas as missões (sem filtro adicional aqui)
+
+    query += ` ORDER BY m.data_missao DESC`;
+
+    try {
+        const client = await pool.connect();
+        const { rows } = await client.query(query, queryParams);
+        client.release();
+        res.json(rows);
+    } catch (err) {
+        console.error("Erro ao buscar missões:", err);
+        res.status(500).json({ error: "Erro interno do servidor ao buscar missões." });
+    }
+});
+
 app.post("/api/missoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
     const { demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, status } = req.body || {};
 
