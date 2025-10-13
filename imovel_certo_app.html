@@ -939,8 +939,10 @@
         // Sidebar
         const Sidebar = ({ activeView, setActiveView, user, onLogout }) => {
             const getUserTitle = () => {
-                if (user.cargo === 'diretor') return 'Diretor';
-                if (user.cargo === 'gerente_regional') return 'Gerente Regional';
+                const role = localStorage.getItem('role');
+                if (role === 'diretor') return 'Diretor';
+                if (role === 'gerente') return 'Gerente Regional';
+                if (role === 'administrador') return 'Administrador';
                 return 'Captador';
             };
 
