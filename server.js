@@ -1083,4 +1083,3 @@ app.post("/api/sync-missions", authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor ao sincronizar missões." });
     }
 });
-
