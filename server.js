@@ -29,7 +29,7 @@ async function corrigirSenhas() {
   }
 }
 
-corrigirSenhas();
+//corrigirSenhas();
 
 // Função para inicializar e garantir estrutura do DB
 async function initializeDb() {
