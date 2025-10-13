@@ -110,7 +110,10 @@
                     const parsedUser = JSON.parse(userData);
                     setUser(parsedUser);
 
-                    const cargo = parsedUser?.cargo || 'captador';
+                    let cargo = parsedUser?.cargo || 'captador';
+                    if (cargo === 'gerente_regional') {
+                        cargo = 'gerente';
+                    }
                     localStorage.setItem('role', cargo);
                     console.log('Cargo carregado:', cargo);
                 }
