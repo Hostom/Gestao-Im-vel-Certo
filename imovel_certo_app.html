@@ -1276,24 +1276,11 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
 
         // App principal
         const App = () => {
-            const { user, loading } = useAuth();
-
-            if (loading) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-                            <p className="mt-4 text-gray-600">Carregando...</p>
-                        </div>
-                    </div>
-                );
-            }
-
-            return user ? <Dashboard /> : <LoginForm />;
+            return <div>App Carregado</div>;
         };
 
         // Renderizar a aplicação
-        const root = ReactDOM.createRoot(document.getElementById('root'));
+        const root = ReactDOM.createRoot(document.getElementById("root"));
         root.render(
             <AuthProvider>
                 <App />
