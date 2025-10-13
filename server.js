@@ -259,26 +259,30 @@ app.post("/api/login", async (req, res) => {
         const senhaValida = await bcrypt.compare(senha, user.senha);
         if (!senhaValida) return res.status(401).json({ error: "Credenciais inválidas" });
 
-        const token = jwt.sign({
-            id: user.id,
-            nome: user.nome,
-            email: user.email,
-            tipo: user.tipo,
-            regiao: user.regiao,
-            regioes_responsavel: user.regioes_responsavel
-        }, JWT_SECRET, { expiresIn: "24h" });
+       const token = jwt.sign(
+  {
+    id: user.id,
+    email: user.email,
+    nome: user.nome,
+    cargo: user.cargo,
+    regiao: user.regiao,
+    regioes_gerenciadas: user.regioes_gerenciadas
+  },
+  process.env.JWT_SECRET
+);
 
-        res.json({
-            token,
-            user: {
-                id: user.id,
-                nome: user.nome,
-                email: user.email,
-                tipo: user.tipo,
-                regiao: user.regiao,
-                regioes_responsavel: user.regioes_responsavel
-            }
-        });
+res.json({
+  token,
+  user: {
+    id: user.id,
+    nome: user.nome,
+    email: user.email,
+    cargo: user.cargo,
+    regiao: user.regiao,
+    regioes_gerenciadas: user.regioes_gerenciadas
+  }
+});
+
     } catch (err) {
         console.error("Erro na rota de login:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
