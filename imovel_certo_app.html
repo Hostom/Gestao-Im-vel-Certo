@@ -103,21 +103,22 @@
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-                const token = localStorage.getItem('token');
-                const userData = localStorage.getItem('user');
-                if (token && userData) {
-  const user = JSON.parse(userData);
-  setUser(user);
+  const token = localStorage.getItem('token');
+  const userData = localStorage.getItem('user');
 
-  // 🟦 Ajuste para garantir que o cargo seja reconhecido corretamente
-  const cargo = user?.cargo || 'captador';
-  localStorage.setItem('role', cargo);
-  console.log('Cargo carregado:', cargo);
-}
+  if (token && userData) {
+    const user = JSON.parse(userData);
+    setUser(user);
 
-                }
-                setLoading(false);
-            }, []);
+    // 🟦 Ajuste para garantir que o cargo seja reconhecido corretamente
+    const cargo = user?.cargo || 'captador';
+    localStorage.setItem('role', cargo);
+    console.log('Cargo carregado:', cargo);
+  }
+
+  setLoading(false);
+}, []); // ✅ fecha corretamente o useEffect
+
 
             const login = async (email, senha) => {
                 try {
