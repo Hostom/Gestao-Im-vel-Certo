@@ -261,1723 +261,1042 @@
             );
         };
 
-        // Componente de Layout Principal
-        const Layout = ({ children }) => {
-            const { user, logout } = useAuth();
-            const [sidebarOpen, setSidebarOpen] = useState(false);
-            const [dropdownOpen, setDropdownOpen] = useState(false);
+        // Componentes de formulário
+        const FormInput = ({ name, label, icon, required, value, onChange, placeholder, type = "text" }) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Icon name={icon} />
+                    {label} {required && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                    type={type}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    required={required}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+        );
 
-            const userRole = localStorage.getItem('role');
+        const FormSelect = ({ name, label, icon, options, value, onChange }) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Icon name={icon} />
+                    {label}
+                </label>
+                <select
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                    {options.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                    ))}
+                </select>
+            </div>
+        );
 
-            const navigation = useMemo(() => [
-                { name: 'Dashboard', href: '#', icon: 'BarChart2', current: true, roles: ['admin', 'diretor', 'gerente', 'captador'] },
-                { name: 'Demandas', href: '#demandas', icon: 'FilePlus', current: false, roles: ['admin', 'diretor', 'gerente', 'captador'] },
-                { name: 'Missões', href: '#missoes', icon: 'Columns', current: false, roles: ['admin', 'diretor', 'gerente', 'captador'] },
-                { name: 'Usuários', href: '#usuarios', icon: 'Users', current: false, roles: ['admin', 'diretor', 'gerente'] },
-                { name: 'Relatórios', href: '#relatorios', icon: 'Trophy', current: false, roles: ['admin', 'diretor', 'gerente'] },
-                { name: 'Configurações', href: '#configuracoes', icon: 'Settings', current: false, roles: ['admin', 'diretor'] },
-            ], []);
+        const FormTextarea = ({ name, label, value, onChange, placeholder }) => (
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                <textarea
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+        );
 
-            const filteredNavigation = useMemo(() => {
-                if (!userRole) return [];
-                return navigation.filter(item => item.roles.includes(userRole));
-            }, [userRole, navigation]);
+        // Componente KPI Card
+        const KPICard = ({ title, value, icon, color = 'blue' }) => {
+            const colorClasses = {
+                blue: 'bg-blue-50 text-blue-600 border-blue-200',
+                green: 'bg-green-50 text-green-600 border-green-200',
+                purple: 'bg-purple-50 text-purple-600 border-purple-200',
+                yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+                red: 'bg-red-50 text-red-600 border-red-200'
+            };
 
             return (
-                <div className="min-h-screen flex">
-                    {/* Sidebar para desktop */}
-                    <div className="hidden md:flex md:flex-shrink-0">
-                        <div className="flex flex-col w-64">
-                            <div className="flex flex-col h-0 flex-1 border-r border-gray-200 bg-white">
-                                <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-                                    <div className="flex items-center flex-shrink-0 px-4">
-                                        <h1 className="text-2xl font-bold text-blue-600">Imóvel Certo</h1>
-                                    </div>
-                                    <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
-                                        {filteredNavigation.map((item) => (
-                                            <a
-                                                key={item.name}
-                                                href={item.href}
-                                                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md
-                                                    ${item.current ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
-                                            >
-                                                <Icon name={item.icon} />
-                                                {item.name}
-                                            </a>
-                                        ))}
-                                    </nav>
-                                </div>
-                                <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-                                    <a href="#" className="flex-shrink-0 w-full group block">
-                                        <div className="flex items-center">
-                                            <div>
-                                                <Icon name="User" />
-                                            </div>
-                                            <div className="ml-3">
-                                                <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{user?.nome || 'Usuário'}</p>
-                                                <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">{user?.email || 'email@example.com'}</p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
+                <div className={`p-6 rounded-lg border-2 ${colorClasses[color]}`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium opacity-75">{title}</p>
+                            <p className="text-3xl font-bold mt-1">{value}</p>
                         </div>
-                    </div>
-
-                    {/* Sidebar para mobile */}
-                    {sidebarOpen && (
-                        <div className="fixed inset-0 flex z-40 md:hidden" role="dialog" aria-modal="true">
-                            <div className="fixed inset-0 bg-gray-600 bg-opacity-75" aria-hidden="true" onClick={() => setSidebarOpen(false)}></div>
-                            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
-                                <div className="absolute top-0 right-0 -mr-12 pt-2">
-                                    <button
-                                        type="button"
-                                        className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-                                        onClick={() => setSidebarOpen(false)}
-                                    >
-                                        <span className="sr-only">Fechar sidebar</span>
-                                        <Icon name="X" />
-                                    </button>
-                                </div>
-                                <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-                                    <div className="flex-shrink-0 flex items-center px-4">
-                                        <h1 className="text-2xl font-bold text-blue-600">Imóvel Certo</h1>
-                                    </div>
-                                    <nav className="mt-5 px-2 space-y-1">
-                                        {filteredNavigation.map((item) => (
-                                            <a
-                                                key={item.name}
-                                                href={item.href}
-                                                className={`group flex items-center px-2 py-2 text-base font-medium rounded-md
-                                                    ${item.current ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
-                                            >
-                                                <Icon name={item.icon} />
-                                                {item.name}
-                                            </a>
-                                        ))}
-                                    </nav>
-                                </div>
-                                <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-                                    <a href="#" className="flex-shrink-0 w-full group block">
-                                        <div className="flex items-center">
-                                            <div>
-                                                <Icon name="User" />
-                                            </div>
-                                            <div className="ml-3">
-                                                <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{user?.nome || 'Usuário'}</p>
-                                                <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">{user?.email || 'email@example.com'}</p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
+                        <div className="text-2xl opacity-75">
+                            <Icon name={icon} />
                         </div>
-                    )}
-
-                    {/* Main content */}
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
-                            <button
-                                type="button"
-                                className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden"
-                                onClick={() => setSidebarOpen(true)}
-                            >
-                                <span className="sr-only">Abrir sidebar</span>
-                                <Icon name="Columns" />
-                            </button>
-                            <div className="flex-1 px-4 flex justify-between">
-                                <div className="flex-1 flex"></div>
-                                <div className="ml-4 flex items-center md:ml-6">
-                                    <div className="ml-3 relative">
-                                        <div>
-                                            <button
-                                                type="button"
-                                                className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                                id="user-menu-button"
-                                                aria-expanded="false"
-                                                aria-haspopup="true"
-                                                onClick={() => setDropdownOpen(!dropdownOpen)}
-                                            >
-                                                <span className="sr-only">Abrir menu do usuário</span>
-                                                <Icon name="User" />
-                                                <span className="ml-2 text-sm font-medium text-gray-700">{user?.nome || 'Usuário'}</span>
-                                            </button>
-                                        </div>
-                                        {dropdownOpen && (
-                                            <div
-                                                className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
-                                                role="menu"
-                                                aria-orientation="vertical"
-                                                aria-labelledby="user-menu-button"
-                                            >
-                                                <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Seu Perfil</a>
-                                                <button
-                                                    onClick={logout}
-                                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                                    role="menuitem"
-                                                >
-                                                    Sair
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <main className="flex-1 overflow-y-auto">
-                            {children}
-                        </main>
                     </div>
                 </div>
             );
         };
 
-        // Componente de Dashboard
-        const Dashboard = () => {
-            const { user } = useAuth();
-            const [demandasCount, setDemandasCount] = useState(0);
-            const [missoesCount, setMissoesCount] = useState(0);
-            const [usuariosCount, setUsuariosCount] = useState(0);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
+        const KPIcard = ({ title, value }) => (
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+            </div>
+        );
 
-            const userRole = localStorage.getItem('role');
-            const userId = user?.id;
-
-            useEffect(() => {
-                const fetchCounts = async () => {
-                    try {
-                        setLoading(true);
-                        setError(null);
-
-                        let demandasEndpoint = '/api/demandas/count';
-                        let missoesEndpoint = '/api/missoes/count';
-                        let usuariosEndpoint = '/api/usuarios/count';
-
-                        if (userRole === 'gerente') {
-                            demandasEndpoint = `/api/demandas/count?gerenteId=${userId}`;
-                            missoesEndpoint = `/api/missoes/count?gerenteId=${userId}`;
-                            usuariosEndpoint = `/api/usuarios/count?gerenteId=${userId}`;
-                        } else if (userRole === 'captador') {
-                            demandasEndpoint = `/api/demandas/count?captadorId=${userId}`;
-                            missoesEndpoint = `/api/missoes/count?captadorId=${userId}`;
-                        }
-
-                        const [demandasRes, missoesRes, usuariosRes] = await Promise.all([
-                            apiRequest(demandasEndpoint),
-                            apiRequest(missoesEndpoint),
-                            apiRequest(usuariosEndpoint)
-                        ]);
-
-                        const demandasData = await demandasRes.json();
-                        const missoesData = await missoesRes.json();
-                        const usuariosData = await usuariosRes.json();
-
-                        setDemandasCount(demandasData.count);
-                        setMissoesCount(missoesData.count);
-                        setUsuariosCount(usuariosData.count);
-
-                    } catch (err) {
-                        console.error('Erro ao buscar contagens:', err);
-                        setError('Não foi possível carregar os dados do dashboard.');
-                    } finally {
-                        setLoading(false);
-                    }
-                };
-
-                if (user) {
-                    fetchCounts();
-                }
-            }, [user, userRole, userId]);
-
-            if (loading) return <div className="p-6 text-center">Carregando dashboard...</div>;
-            if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
-
-            return (
-                <div className="p-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="px-4 py-5 sm:p-6">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                                        <Icon name="FilePlus" />
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500">Demandas Ativas</dt>
-                                            <dd className="text-3xl font-bold text-gray-900">{demandasCount}</dd>
-                                        </dl>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white overflow-hidden shadow rounded-lg">
-                            <div className="px-4 py-5 sm:p-6">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                                        <Icon name="Columns" />
-                                    </div>
-                                    <div className="ml-5 w-0 flex-1">
-                                        <dl>
-                                            <dt className="text-sm font-medium text-gray-500">Missões em Andamento</dt>
-                                            <dd className="text-3xl font-bold text-gray-900">{missoesCount}</dd>
-                                        </dl>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {userRole !== 'captador' && (
-                            <div className="bg-white overflow-hidden shadow rounded-lg">
-                                <div className="px-4 py-5 sm:p-6">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 bg-purple-500 rounded-md p-3">
-                                            <Icon name="Users" />
-                                        </div>
-                                        <div className="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt className="text-sm font-medium text-gray-500">Usuários Ativos</dt>
-                                                <dd className="text-3xl font-bold text-gray-900">{usuariosCount}</dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-
-        // Componente de Gerenciamento de Demandas
-        const Demandas = () => {
-            const { user } = useAuth();
-            const [demandas, setDemandas] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [currentDemanda, setCurrentDemanda] = useState(null);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [filterRegiao, setFilterRegiao] = useState('');
-            const [regioesDisponiveis, setRegioesDisponiveis] = useState([]);
-
-            const userRole = localStorage.getItem('role');
-            const userId = user?.id;
-
-            const fetchDemandas = useCallback(async () => {
-                try {
-                    setLoading(true);
-                    setError(null);
-                    let endpoint = '/api/demandas';
-
-                    if (userRole === 'gerente') {
-                        endpoint = `/api/demandas?gerenteId=${userId}`;
-                    } else if (userRole === 'captador') {
-                        endpoint = `/api/demandas?captadorId=${userId}`;
-                    }
-
-                    const response = await apiRequest(endpoint);
-                    const data = await response.json();
-                    setDemandas(data);
-                } catch (err) {
-                    console.error('Erro ao buscar demandas:', err);
-                    setError('Não foi possível carregar as demandas.');
-                } finally {
-                    setLoading(false);
-                }
-            }, [userRole, userId]);
-
-            const fetchRegioes = useCallback(async () => {
-                try {
-                    const response = await apiRequest('/api/regioes');
-                    const data = await response.json();
-                    setRegioesDisponiveis(data.map(r => r.regiao));
-                } catch (err) {
-                    console.error('Erro ao buscar regiões:', err);
-                }
-            }, []);
-
-            useEffect(() => {
-                if (user) {
-                    fetchDemandas();
-                    fetchRegioes();
-                }
-            }, [user, fetchDemandas, fetchRegioes]);
-
-            const handleEdit = (demanda) => {
-                setCurrentDemanda(demanda);
-                setIsModalOpen(true);
-            };
-
-            const handleDelete = async (id) => {
-                if (window.confirm('Tem certeza que deseja excluir esta demanda?')) {
-                    try {
-                        await apiRequest(`/api/demandas/${id}`, { method: 'DELETE' });
-                        fetchDemandas();
-                    } catch (err) {
-                        console.error('Erro ao excluir demanda:', err);
-                        setError('Não foi possível excluir a demanda.');
-                    }
-                }
-            };
-
-            const handleSave = async (demandaData) => {
-                try {
-                    if (demandaData.id) {
-                        await apiRequest(`/api/demandas/${demandaData.id}`, {
-                            method: 'PUT',
-                            body: demandaData,
-                        });
-                    } else {
-                        await apiRequest('/api/demandas', {
-                            method: 'POST',
-                            body: { ...demandaData, criado_por_id: user.id },
-                        });
-                    }
-                    fetchDemandas();
-                    setIsModalOpen(false);
-                    setCurrentDemanda(null);
-                } catch (err) {
-                    console.error('Erro ao salvar demanda:', err);
-                    setError('Não foi possível salvar a demanda.');
-                }
-            };
-
-            const filteredDemandas = useMemo(() => {
-                return demandas.filter(demanda => {
-                    const matchesSearch = searchTerm === '' ||
-                        demanda.codigo_demanda.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        demanda.cliente_interessado.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        demanda.consultor_locacao.toLowerCase().includes(searchTerm.toLowerCase());
-                    const matchesRegion = filterRegiao === '' || demanda.regiao_demanda === filterRegiao;
-                    return matchesSearch && matchesRegion;
-                });
-            }, [demandas, searchTerm, filterRegiao]);
-
-            if (loading) return <div className="p-6 text-center">Carregando demandas...</div>;
-            if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
-
-            return (
-                <div className="p-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Gerenciamento de Demandas</h1>
-
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex space-x-2">
-                            <input
-                                type="text"
-                                placeholder="Buscar demandas..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            />
-                            <select
-                                value={filterRegiao}
-                                onChange={(e) => setFilterRegiao(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todas as Regiões</option>
-                                {regioesDisponiveis.map(regiao => (
-                                    <option key={regiao} value={regiao}>{regiao}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <button
-                            onClick={() => { setCurrentDemanda(null); setIsModalOpen(true); }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-                        >
-                            <Icon name="Plus" /> Nova Demanda
-                        </button>
-                    </div>
-
-                    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultor</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Imóvel</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Região</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aluguel</th>
-                                    <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredDemandas.map((demanda) => (
-                                    <tr key={demanda.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{demanda.codigo_demanda}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{demanda.cliente_interessado}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{demanda.consultor_locacao}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{demanda.tipo_imovel}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{demanda.regiao_demanda}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{demanda.faixa_aluguel}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handleEdit(demanda)} className="text-blue-600 hover:text-blue-900 mr-3"><Icon name="Edit" /></button>
-                                            <button onClick={() => handleDelete(demanda.id)} className="text-red-600 hover:text-red-900"><Icon name="X" /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {isModalOpen && (
-                        <DemandaModal
-                            demanda={currentDemanda}
-                            onSave={handleSave}
-                            onClose={() => setIsModalOpen(false)}
-                            regioesDisponiveis={regioesDisponiveis}
-                        />
-                    )}
-                </div>
-            );
-        };
-
-        // Modal para Adicionar/Editar Demanda
-        const DemandaModal = ({ demanda, onSave, onClose, regioesDisponiveis }) => {
-            const [formData, setFormData] = useState(demanda || {
-                codigo_demanda: '',
-                consultor_locacao: '',
-                cliente_interessado: '',
+        // Nova Demanda (apenas gerentes)
+        const NovaDemanda = ({ onDemandaCriada }) => {
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [formData, setFormData] = useState({
+                consultorLocacao: 'Matheus',
+                clienteInteressado: '',
                 contato: '',
-                tipo_imovel: '',
-                regiao_desejada: '',
-                regiao_demanda: '',
-                faixa_aluguel: '',
-                caracteristicas_desejadas: '',
-                prazo_necessidade: '',
-                observacoes: '',
+                tipoImovel: 'Apartamento',
+                regiaoDesejada: '',
+                regiaoDemanda: 'Geral',
+                faixaAluguel: 'De 8mil a 10mil',
+                caracteristicasDesejadas: '',
+                prazoNecessidade: 'Urgente',
+                observacoes: ''
             });
-
-            useEffect(() => {
-                setFormData(demanda || {
-                    codigo_demanda: '',
-                    consultor_locacao: '',
-                    cliente_interessado: '',
-                    contato: '',
-                    tipo_imovel: '',
-                    regiao_desejada: '',
-                    regiao_demanda: '',
-                    faixa_aluguel: '',
-                    caracteristicas_desejadas: '',
-                    prazo_necessidade: '',
-                    observacoes: '',
-                });
-            }, [demanda]);
 
             const handleChange = (e) => {
                 const { name, value } = e.target;
                 setFormData(prev => ({ ...prev, [name]: value }));
             };
 
-            const handleSubmit = (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
-                onSave(formData);
+                setIsSubmitting(true);
+                try {
+                   const token = localStorage.getItem('token'); // Recupera o token do login
+
+const response = await apiRequest('/api/demandas', {
+    method: 'POST',
+    headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(formData),
+});
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Falha ao criar a demanda.');
+                    }
+                    
+                    alert('Demanda enviada para captação com sucesso!');
+                    setFormData({
+                        consultorLocacao: 'Matheus',
+                        clienteInteressado: '',
+                        contato: '',
+                        tipoImovel: 'Apartamento',
+                        regiaoDesejada: '',
+                        regiaoDemanda: 'Geral',
+                        faixaAluguel: 'De 8mil a 10mil',
+                        caracteristicasDesejadas: '',
+                        prazoNecessidade: 'Urgente',
+                        observacoes: ''
+                    });
+                    console.log('[NovaDemanda] Chamando onDemandaCriada');
+                    if (onDemandaCriada) onDemandaCriada();
+                } catch (error) {
+                    console.error("Erro ao submeter:", error);
+                    alert(`Erro ao criar demanda: ${error.message}`);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            const inputFields = [
+                { name: 'clienteInteressado', label: 'Cliente Interessado', icon: 'User', required: true },
+                { name: 'contato', label: 'Contato (Telefone/Email)', icon: 'Phone', required: true },
+                { name: 'regiaoDesejada', label: 'Região / Bairro Desejado', icon: 'MapPin', required: true },
+            ];
+
+            const selectFields = {
+                consultorLocacao: ["Israel", "Matheus", "Bruna K", "Kerolin", "Stephanie", "Lidiane"],
+                tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
+                faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
+                prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
+                regiaoDemanda: ["Geral", "Itapema", "Balneario_Camboriu", "Itajai"],
             };
 
             return (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-                    <div className="relative p-8 border w-full max-w-2xl md:max-w-3xl shadow-lg rounded-md bg-white">
-                        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                            {demanda ? 'Editar Demanda' : 'Nova Demanda'}
-                        </h3>
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="codigo_demanda" className="block text-sm font-medium text-gray-700">Código da Demanda</label>
-                                <input type="text" name="codigo_demanda" id="codigo_demanda" value={formData.codigo_demanda} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="consultor_locacao" className="block text-sm font-medium text-gray-700">Consultor de Locação</label>
-                                <input type="text" name="consultor_locacao" id="consultor_locacao" value={formData.consultor_locacao} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="cliente_interessado" className="block text-sm font-medium text-gray-700">Cliente Interessado</label>
-                                <input type="text" name="cliente_interessado" id="cliente_interessado" value={formData.cliente_interessado} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="contato" className="block text-sm font-medium text-gray-700">Contato</label>
-                                <input type="text" name="contato" id="contato" value={formData.contato} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="tipo_imovel" className="block text-sm font-medium text-gray-700">Tipo de Imóvel</label>
-                                <input type="text" name="tipo_imovel" id="tipo_imovel" value={formData.tipo_imovel} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="regiao_desejada" className="block text-sm font-medium text-gray-700">Região Desejada</label>
-                                <input type="text" name="regiao_desejada" id="regiao_desejada" value={formData.regiao_desejada} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="regiao_demanda" className="block text-sm font-medium text-gray-700">Região da Demanda</label>
-                                <select name="regiao_demanda" id="regiao_demanda" value={formData.regiao_demanda} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="">Selecione uma região</option>
-                                    {regioesDisponiveis.map(regiao => (
-                                        <option key={regiao} value={regiao}>{regiao}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="faixa_aluguel" className="block text-sm font-medium text-gray-700">Faixa de Aluguel</label>
-                                <input type="text" name="faixa_aluguel" id="faixa_aluguel" value={formData.faixa_aluguel} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="caracteristicas_desejadas" className="block text-sm font-medium text-gray-700">Características Desejadas</label>
-                                <textarea name="caracteristicas_desejadas" id="caracteristicas_desejadas" value={formData.caracteristicas_desejadas} onChange={handleChange} rows="3" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
-                            </div>
-                            <div>
-                                <label htmlFor="prazo_necessidade" className="block text-sm font-medium text-gray-700">Prazo de Necessidade</label>
-                                <input type="text" name="prazo_necessidade" id="prazo_necessidade" value={formData.prazo_necessidade} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="observacoes" className="block text-sm font-medium text-gray-700">Observações</label>
-                                <textarea name="observacoes" id="observacoes" value={formData.observacoes} onChange={handleChange} rows="3" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
-                            </div>
-                            <div className="md:col-span-2 flex justify-end space-x-3 mt-4">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Salvar
-                                </button>
-                            </div>
-                        </form>
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Nova Demanda de Locação</h2>
+                    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormSelect name="consultorLocacao" label="Consultor de Locação" icon="Briefcase" options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
+                            {inputFields.map(field => <FormInput key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />)}
+                            <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon="Building" options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
+                            <FormSelect name="regiaoDemanda" label="Região da Demanda" icon="MapPin" options={selectFields.regiaoDemanda} value={formData.regiaoDemanda} onChange={handleChange} />
+                            <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon="Star" options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
+                            <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon="Calendar" options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
+                        </div>
+
+                        <FormTextarea name="caracteristicasDesejadas" label="Características Desejadas" value={formData.caracteristicasDesejadas} onChange={handleChange} placeholder="Ex: 3 suítes, sacada com churrasqueira, mobiliado..." />
+                        <FormTextarea name="observacoes" label="Observações" value={formData.observacoes} onChange={handleChange} placeholder="Informações adicionais relevantes..." />
+
+                        <div className="text-right">
+                            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
+                                {isSubmitting ? <Icon name="Clock" /> : <Icon name="FilePlus" />}
+                                {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            );
+        };
+
+        // Painel Executivo (Gerente)
+        const PainelExecutivo = ({ missoes, demandas }) => {
+            const kpis = useMemo(() => {
+                const missoesEnviadas = missoes.length;
+                const missoesConcluidas24h = missoes.filter(m => {
+                    if (!m.data_retorno) return false;
+                    const diff = new Date(m.data_retorno).getTime() - new Date(m.data_missao).getTime();
+                    return diff / (1000 * 60 * 60) <= 24;
+                }).length;
+                const locados = missoes.filter(m => m.status === 'Locado').length;
+                const taxaConversao = missoesEnviadas > 0 ? ((locados / missoesEnviadas) * 100).toFixed(1) + '%' : '0%';
+
+                return {
+                    totalDemandas: demandas.length,
+                    missoesEnviadas,
+                    missoesConcluidas24h,
+                    taxaConversao,
+                };
+            }, [missoes, demandas]);
+
+            const statusCounts = useMemo(() => {
+                return missoes.reduce((acc, m) => {
+                    acc[m.status] = (acc[m.status] || 0) + 1;
+                    return acc;
+                }, {});
+            }, [missoes]);
+
+            return (
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Painel Executivo</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPIcard title="Total de Demandas" value={kpis.totalDemandas} />
+                        <KPIcard title="Missões Enviadas" value={kpis.missoesEnviadas} />
+                        <KPIcard title="Missões Concluídas (24h)" value={kpis.missoesConcluidas24h} />
+                        <KPIcard title="Taxa de Conversão" value={kpis.taxaConversao} />
+                    </div>
+                    <div className="mt-8 bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-xl font-semibold mb-4">Status das Missões</h3>
+                        <div className="flex space-x-4">
+                            {Object.entries(statusCounts).map(([status, count]) => (
+                                <div key={status} className="text-center p-4 bg-gray-50 rounded-lg flex-1">
+                                    <p className="text-sm text-gray-500">{status}</p>
+                                    <p className="text-2xl font-bold">{count}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // Componente de Gerenciamento de Missões
-        const Missoes = () => {
-            const { user } = useAuth();
-            const [missoes, setMissoes] = useState([]);
-            const [demandas, setDemandas] = useState([]); // Para buscar códigos de demanda
-            const [usuarios, setUsuarios] = useState([]); // Para buscar captadores
+        // Painel do Captador
+        const PainelCaptador = ({ missoes, user }) => {
+            const minhasMissoes = missoes.filter(m => m.captador_responsavel === user.nome);
+            
+            const kpis = useMemo(() => {
+                const totalMissoes = minhasMissoes.length;
+                const encontrados = minhasMissoes.filter(m => m.status === 'Encontrado' || m.status === 'Locado').length;
+                const locados = minhasMissoes.filter(m => m.status === 'Locado').length;
+                const emAndamento = minhasMissoes.filter(m => m.status === 'Em busca').length;
+
+                return { totalMissoes, encontrados, locados, emAndamento };
+            }, [minhasMissoes]);
+
+            return (
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Meu Painel</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPIcard title="Total de Missões" value={kpis.totalMissoes} />
+                        <KPIcard title="Em Andamento" value={kpis.emAndamento} />
+                        <KPIcard title="Encontrados" value={kpis.encontrados} />
+                        <KPIcard title="Locados" value={kpis.locados} />
+                    </div>
+                    
+                    <div className="mt-8 bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-xl font-semibold mb-4">Minhas Missões Recentes</h3>
+                        <div className="space-y-3">
+                            {minhasMissoes.slice(0, 5).map(missao => (
+                                <div key={missao.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p className="font-semibold">{missao.codigo_demanda}</p>
+                                        <p className="text-sm text-gray-600">{missao.descricao_busca}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                        missao.status === 'Locado' ? 'bg-green-100 text-green-800' :
+                                        missao.status === 'Encontrado' ? 'bg-blue-100 text-blue-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                        {missao.status}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente de Missões Kanban
+const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
+            const [missoes, setMissoes] = useState(missoesExternas || []);
+            const [selectedMissao, setSelectedMissao] = useState(null);
+            const [interacoes, setInteracoes] = useState([]);
+            const [novaInteracao, setNovaInteracao] = useState("");
             const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [currentMissao, setCurrentMissao] = useState(null);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [filterStatus, setFilterStatus] = useState('');
-            const [filterCaptador, setFilterCaptador] = useState('');
-            const [filterRegiao, setFilterRegiao] = useState('');
-            const [regioesDisponiveis, setRegioesDisponiveis] = useState([]);
 
-            const userRole = localStorage.getItem('role');
-            const userId = user?.id;
+            const columns = ["Em busca", "Encontrado", "Locado"];
 
-            const fetchMissoes = useCallback(async () => {
+            const loadMissoes = useCallback(async () => {
+                setLoading(true);
                 try {
-                    setLoading(true);
-                    setError(null);
-                    let endpoint = '/api/missoes';
-
-                    if (userRole === 'gerente') {
-                        endpoint = `/api/missoes?gerenteId=${userId}`;
-                    } else if (userRole === 'captador') {
-                        endpoint = `/api/missoes?captadorId=${userId}`;
+                    const response = await apiRequest("/api/missoes");
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Filtrar missões no frontend para captadores, se o backend não o fez
+                        const filteredData = user.tipo === 'captador' 
+                            ? data.filter(missao => missao.captador_id === user.id) 
+                            : data;
+                        setMissoes(filteredData);
+                    } else {
+                        console.error("loadMissoes response not ok", response);
                     }
-
-                    const response = await apiRequest(endpoint);
-                    const data = await response.json();
-                    setMissoes(data);
-                } catch (err) {
-                    console.error('Erro ao buscar missões:', err);
-                    setError('Não foi possível carregar as missões.');
+                } catch (error) {
+                    console.error("Erro ao carregar missões:", error);
                 } finally {
                     setLoading(false);
                 }
-            }, [userRole, userId]);
-
-            const fetchDemandasAndUsuarios = useCallback(async () => {
-                try {
-                    const [demandasRes, usuariosRes, regioesRes] = await Promise.all([
-                        apiRequest('/api/demandas'),
-                        apiRequest('/api/usuarios?tipo=captador'),
-                        apiRequest('/api/regioes')
-                    ]);
-                    const demandasData = await demandasRes.json();
-                    const usuariosData = await usuariosRes.json();
-                    const regioesData = await regioesRes.json();
-                    setDemandas(demandasData);
-                    setUsuarios(usuariosData);
-                    setRegioesDisponiveis(regioesData.map(r => r.regiao));
-                } catch (err) {
-                    console.error('Erro ao buscar dados de apoio para missões:', err);
-                }
-            }, []);
+            }, [user]);
 
             useEffect(() => {
-                if (user) {
-                    fetchMissoes();
-                    fetchDemandasAndUsuarios();
-                }
-            }, [user, fetchMissoes, fetchDemandasAndUsuarios]);
+                loadMissoes();
+            }, [loadMissoes, onRefresh]); // Adicionado onRefresh para recarregar quando uma nova demanda é criada
 
-            const handleEdit = (missao) => {
-                setCurrentMissao(missao);
-                setIsModalOpen(true);
-            };
-
-            const handleDelete = async (id) => {
-                if (window.confirm('Tem certeza que deseja excluir esta missão?')) {
-                    try {
-                        await apiRequest(`/api/missoes/${id}`, { method: 'DELETE' });
-                        fetchMissoes();
-                    } catch (err) {
-                        console.error('Erro ao excluir missão:', err);
-                        setError('Não foi possível excluir a missão.');
-                    }
-                }
-            };
-
-            const handleSave = async (missaoData) => {
+            const loadInteracoes = async (missaoId) => {
                 try {
-                    if (missaoData.id) {
-                        await apiRequest(`/api/missoes/${missaoData.id}`, {
-                            method: 'PUT',
-                            body: missaoData,
-                        });
-                    } else {
-                        await apiRequest('/api/missoes', {
-                            method: 'POST',
-                            body: { ...missaoData, criado_por_id: user.id },
-                        });
+                    const response = await apiRequest(`/api/missoes/${missaoId}/interacoes`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setInteracoes(data);
                     }
-                    fetchMissoes();
-                    setIsModalOpen(false);
-                    setCurrentMissao(null);
-                } catch (err) {
-                    console.error('Erro ao salvar missão:', err);
-                    setError('Não foi possível salvar a missão.');
+                } catch (error) {
+                    console.error("Erro ao carregar interações:", error);
+                }
+            };
+
+            const updateMissaoStatus = async (missaoId, novoStatus) => {
+
+
+            const [novaInteracao, setNovaInteracao] = useState('');
+            const [loading, setLoading] = useState(true);
+
+            const columns = ['Em busca', 'Encontrado', 'Locado'];
+
+            useEffect(() => {
+                console.log('[MissoesKanban] missoesExternas recebidas:', missoesExternas);
+                if (missoesExternas) {
+                    setMissoes(missoesExternas);
+                    setLoading(false);
+                } else {
+                    loadMissoes();
+                }
+            }, [missoesExternas]);
+
+            const loadMissoes = async () => {
+                try {
+                    const response = await apiRequest('/api/missoes');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setMissoes(data);
+                    } else {
+                        console.error('loadMissoes response not ok', response);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar missões:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const loadInteracoes = async (missaoId) => {
+                try {
+                    const response = await apiRequest(`/api/missoes/${missaoId}/interacoes`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setInteracoes(data);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar interações:', error);
+                }
+            };
+
+            const updateMissaoStatus = async (missaoId, novoStatus) => {
+                try {
+                    const response = await apiRequest(`/api/missoes/${missaoId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ status: novoStatus }),
+                    });
+                    if (response.ok) {
+                        setMissoes(prev => prev.map(m => m.id === missaoId ? { ...m, status: novoStatus } : m));
+                        if (onRefresh) onRefresh();
+                    } else {
+                        console.error('updateMissaoStatus response not ok', response);
+                    }
+                } catch (error) {
+                    console.error('Erro ao atualizar status:', error);
+                }
+            };
+
+            const addInteracao = async () => {
+                if (!novaInteracao.trim()) return;
+                try {
+                    const response = await apiRequest(`/api/missoes/${selectedMissao.id}/interacoes`, {
+                        method: 'POST',
+                        body: JSON.stringify({ descricao: novaInteracao }),
+                    });
+                    if (response.ok) {
+                        setNovaInteracao('');
+                        loadInteracoes(selectedMissao.id);
+                    }
+                } catch (error) {
+                    console.error('Erro ao adicionar interação:', error);
+                }
+            };
+
+            const getSLAColor = (dataMissao) => {
+                const agora = new Date();
+                const criacao = new Date(dataMissao);
+                const horasPassadas = (agora - criacao) / (1000 * 60 * 60);
+                if (horasPassadas > 48) return 'bg-red-500';
+                if (horasPassadas > 24) return 'bg-yellow-500';
+                return 'bg-green-500';
+            };
+
+            const handleDragStart = (e, missaoId) => { e.dataTransfer.setData('text/plain', missaoId); };
+            const handleDragOver = (e) => { e.preventDefault(); };
+            const handleDrop = (e, novoStatus) => { e.preventDefault(); const missaoId = parseInt(e.dataTransfer.getData('text/plain')); updateMissaoStatus(missaoId, novoStatus); };
+
+            const openMissaoDetails = (missao) => { setSelectedMissao(missao); loadInteracoes(missao.id); };
+
+            if (loading) return <div className="flex justify-center items-center h-64">Carregando missões...</div>;
+
+            const missoesExibidas = user.tipo === 'captador' ? missoes.filter(m => m.captador_responsavel === user.nome) : missoes;
+            console.log('[MissoesKanban] missoesExibidas:', missoesExibidas);
+            console.log('[MissoesKanban] Status das missões:', missoesExibidas.map(m => ({id: m.id, codigo: m.codigo_demanda, status: m.status})));
+
+            return (
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">
+                        {user.tipo === 'captador' ? 'Minhas Missões' : 'Missões de Captação'}
+                    </h2>
+                    <div className="flex space-x-4 overflow-x-auto pb-4">
+                        {columns.map(status => (
+                            <div key={status} className="kanban-column bg-gray-100 rounded-lg p-3 flex-shrink-0" onDrop={(e)=>handleDrop(e,status)} onDragOver={handleDragOver}>
+                                <h3 className="font-semibold text-lg mb-4 px-2">{status} ({missoesExibidas.filter(m => m.status === status).length})</h3>
+                                <div className="space-y-3">
+                                    {missoesExibidas.filter(m => m.status === status).map(missao => (
+                                        <div key={missao.id} draggable onDragStart={(e)=>handleDragStart(e,missao.id)} className="bg-white p-4 rounded-md shadow-sm cursor-grab active:cursor-grabbing">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-semibold text-gray-800">{missao.codigo_demanda}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">{missao.consultor_solicitante || missao.consultor_locacao || ''}</p>
+                                                </div>
+                                                <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{missao.captador_responsavel}</span>
+                                            </div>
+
+                                            <p className="text-sm text-gray-600 mt-2">{missao.descricao_busca}</p>
+                                            <p className="text-xs text-gray-500 mt-1">Bairro: {missao.regiao_bairro}</p>
+
+                                            <div className="mt-2 text-sm text-gray-700">
+                                                <p><strong>Cliente:</strong> {missao.cliente_interessado || '—'}</p>
+                                                <p><strong>Contato:</strong> {missao.contato || '—'}</p>
+                                            </div>
+
+                                            {missao.status === 'Em busca' && (
+                                                <div className="mt-3">
+                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                        <div className={`h-1.5 rounded-full ${getSLAColor(missao.data_missao)}`} style={{ width: '100%' }}></div>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-1">SLA 48h</p>
+                                                </div>
+                                            )}
+
+                                            <button onClick={() => openMissaoDetails(missao)} className="mt-2 text-xs text-blue-600 hover:text-blue-800"><Icon name="Eye" />Ver detalhes</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {selectedMissao && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold">Detalhes da Missão - {selectedMissao.codigo_demanda}</h3>
+                                    <button onClick={() => setSelectedMissao(null)} className="text-gray-500 hover:text-gray-700"><Icon name="X" /></button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <h4 className="font-semibold mb-2">Dados do Cliente</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
+                                            <div><strong>Cliente:</strong> {selectedMissao.cliente_interessado || '—'}</div>
+                                            <div><strong>Contato:</strong> {selectedMissao.contato || '—'}</div>
+                                            <div><strong>Tipo de Imóvel:</strong> {selectedMissao.tipo_imovel || '—'}</div>
+                                            <div><strong>Região:</strong> {selectedMissao.regiao_desejada || selectedMissao.regiao_demanda || '—'}</div>
+                                            <div><strong>Faixa:</strong> {selectedMissao.faixa_aluguel || '—'}</div>
+                                            <div><strong>Prazo:</strong> {selectedMissao.prazo_necessidade || '—'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="font-semibold mb-2">Interações</h4>
+                                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                                            {interacoes.map(interacao => (
+                                                <div key={interacao.id} className="bg-gray-50 p-3 rounded">
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="font-medium text-sm">{interacao.usuario_nome}</span>
+                                                        <span className="text-xs text-gray-500">{new Date(interacao.data_interacao).toLocaleString()}</span>
+                                                    </div>
+                                                    <p className="text-sm mt-1">{interacao.descricao}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="font-semibold mb-2">Adicionar Interação</h4>
+                                        <div className="flex space-x-2">
+                                            <input type="text" value={novaInteracao} onChange={(e) => setNovaInteracao(e.target.value)} placeholder="Digite sua interação..." className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm" />
+                                            <button onClick={addInteracao} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"><Icon name="Plus" /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Componente principal de Relatórios
+        const RelatoriosPage = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [dashboardData, setDashboardData] = useState(null);
+            const [performanceData, setPerformanceData] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const { user } = useAuth();
+
+            // Carregar dados do dashboard
+            useEffect(() => {
+                loadDashboardData();
+                loadPerformanceData();
+            }, []);
+
+            const loadDashboardData = async () => {
+  setLoading(true);
+  try {
+    const response = await apiRequest('/api/relatorios/dashboard');
+    if (response.ok) {
+      const data = await response.json();
+
+      // Garante que todos os campos existam e não sejam NaN
+      const safeData = {
+        total_demandas: data.total_demandas || 0,
+        demandas_mes: data.demandas_mes || 0,
+        total_missoes: data.total_missoes || 0,
+        missoes_locadas: data.missoes_locadas || 0,
+        missoes_encontradas: data.missoes_encontradas || 0,
+        missoes_em_busca: data.missoes_em_busca || 0,
+        taxa_sucesso: isNaN(data.taxa_sucesso) ? 0 : data.taxa_sucesso || 0
+      };
+
+      console.log("📊 Dados do dashboard carregados:", safeData);
+      setDashboardData(safeData);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dados do dashboard:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+            const loadPerformanceData = async () => {
+                try {
+                    const response = await apiRequest('/api/relatorios/performance-captadores');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setPerformanceData(data);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar performance:', error);
+                }
+            };
+
+            const tabs = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2' },
+                { id: 'performance', label: 'Performance', icon: 'Trophy' },
+                { id: 'demandas', label: 'Demandas', icon: 'FilePlus' },
+                { id: 'historico', label: 'Histórico', icon: 'Clock' }
+            ];
+
+            // Filtrar tabs baseado no tipo de usuário
+            const availableTabs = tabs.filter(tab => {
+                if (user.tipo === 'captador') {
+                    return ['dashboard', 'performance'].includes(tab.id);
+                }
+                return true;
+            });
+
+            // Determinar título baseado no usuário
+            const getTitulo = () => {
+                if (user.tipo === 'admin') return 'Relatórios - Visão Geral';
+                if (user.tipo === 'gerente_regional') {
+                    const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(',') : [user.regiao];
+                    return `Relatórios - ${regioes.join(' e ')}`;
+                }
+                return 'Meus Relatórios';
+            };
+
+            return (
+                <div className="p-6">
+                    <div className="mb-6">
+                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                            {getTitulo()}
+                        </h1>
+                        <p className="text-gray-600">
+                            {user.tipo === 'admin' ? 'Visão geral de todas as regiões' :
+                             user.tipo === 'gerente_regional' ? `Relatórios das suas regiões` :
+                             'Seus relatórios pessoais'}
+                        </p>
+                    </div>
+
+                    {/* Tabs de navegação */}
+                    <div className="border-b border-gray-200 mb-6">
+                        <nav className="-mb-px flex space-x-8">
+                            {availableTabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <Icon name={tab.icon} />
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    {/* Conteúdo das tabs */}
+                    {loading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                        </div>
+                    ) : (
+                        <>
+                            {activeTab === 'dashboard' && <DashboardTab data={dashboardData} />}
+                            {activeTab === 'performance' && <PerformanceTab data={performanceData} />}
+                            {activeTab === 'demandas' && <DemandasTab />}
+                            {activeTab === 'historico' && <HistoricoTab />}
+                        </>
+                    )}
+                </div>
+            );
+        };
+
+        // Tab do Dashboard
+        const DashboardTab = ({ data }) => {
+            if (!data) {
+                return <div className="text-center py-8">Carregando dados...</div>;
+            }
+
+            return (
+                <div className="space-y-6">
+                    {/* KPIs principais */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPICard 
+                            title="Total de Demandas" 
+                            value={data.totalDemandas} 
+                            icon="FilePlus"
+                            color="blue"
+                        />
+                        <KPICard 
+                            title="Demandas do Mês" 
+                            value={data.demandasMes} 
+                            icon="Calendar"
+                            color="green"
+                        />
+                        <KPICard 
+                            title="Total de Missões" 
+                            value={data.totalMissoes} 
+                            icon="Briefcase"
+                            color="purple"
+                        />
+                        <KPICard 
+                            title="Taxa de Sucesso" 
+                            value={`${Number(data.taxaSucesso || 0)}%`}
+                            icon="Trophy"
+                            color="yellow"
+                        />
+                    </div>
+
+                    {/* Gráficos e métricas adicionais */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-lg font-semibold mb-4">Resumo de Atividades</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Missões Locadas</span>
+                                    <span className="font-semibold text-green-600">{data.missoesLocadas}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Missões Ativas</span>
+                                    <span className="font-semibold text-blue-600">{data.totalMissoes - data.missoesLocadas}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Eficiência</span>
+                                    <span className="font-semibold text-purple-600">{data.taxaSucesso}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h3 className="text-lg font-semibold mb-4">Tendências</h3>
+                            <div className="text-center py-8 text-gray-500">
+                                <Icon name="BarChart2" />
+                                <p>Gráfico de tendências será implementado aqui</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Tab de Performance
+        const PerformanceTab = ({ data }) => {
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold">Performance dos Captadores</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Captador
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Região
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total Missões
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Locadas
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Encontradas
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Em Busca
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Taxa de Sucesso
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {data.map((captador) => (
+                                        <tr key={captador.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <Icon name="User" />
+                                                    <span className="font-medium text-gray-900">{captador.captador_nome}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {captador.regiao}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {captador.total_missoes}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    {captador.missoes_locadas}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {captador.missoes_encontradas}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    {captador.missoes_em_busca}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <div className="flex items-center">
+                                                    <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div 
+                                                            className="bg-green-600 h-2 rounded-full" 
+                                                            style={{ width: `${captador.taxa_sucesso || 0}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="font-medium">{captador.taxa_sucesso || 0}%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Tab de Demandas (simplificada para o exemplo)
+        const DemandasTab = () => {
+            return (
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Relatório de Demandas</h3>
+                    <p className="text-gray-600">Funcionalidade de relatório de demandas será implementada aqui.</p>
+                </div>
+            );
+        };
+
+        // Tab de Histórico (simplificada para o exemplo)
+        const HistoricoTab = () => {
+            return (
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-lg font-semibold mb-4">Histórico de Relatórios</h3>
+                    <p className="text-gray-600">Histórico de relatórios gerados será implementado aqui.</p>
+                </div>
+            );
+        };
+
+        // Componente de navegação lateral
+        const Sidebar = ({ activeView, setActiveView, user }) => {
+            const { logout } = useAuth();
+
+            const menuItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['admin', 'gerente_regional', 'captador'] },
+                { id: 'demandas', label: 'Demandas', icon: 'FilePlus', roles: ['admin', 'gerente_regional'] },
+                { id: 'missoes', label: 'Missões', icon: 'Briefcase', roles: ['admin', 'gerente_regional', 'captador'] },
+                { id: 'relatorios', label: 'Relatórios', icon: 'BarChart2', roles: ['admin', 'gerente_regional', 'captador'] },
+                { id: 'usuarios', label: 'Usuários', icon: 'Users', roles: ['admin'] }
+            ];
+
+            const availableItems = menuItems.filter(item => item.roles.includes(user.tipo));
+
+            // Determinar título do usuário
+            const getUserTitle = () => {
+                if (user.tipo === 'admin') return 'Administrador';
+                if (user.tipo === 'gerente_regional') {
+                    const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(',') : [user.regiao];
+                    return `Gerente - ${regioes.join(' e ')}`;
+                }
+                return 'Captador';
+            };
+
+            return (
+                <div className="bg-white shadow-lg h-screen w-64 fixed left-0 top-0 overflow-y-auto">
+                    <div className="p-6">
+                        <h1 className="text-xl font-bold text-gray-800">Imóvel Certo</h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {getUserTitle()}
+                        </p>
+                    </div>
+                    
+                    <nav className="mt-6">
+                        {availableItems.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveView(item.id)}
+                                className={`w-full text-left px-6 py-3 flex items-center hover:bg-gray-50 ${
+                                    activeView === item.id ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-700'
+                                }`}
+                            >
+                                <Icon name={item.icon} />
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div className="absolute bottom-0 w-full p-6">
+                        <div className="border-t pt-4">
+                            <p className="text-sm text-gray-600 mb-2">{user.nome}</p>
+                            <button
+                                onClick={logout}
+                                className="w-full text-left text-red-600 hover:text-red-800 flex items-center"
+                            >
+                                <Icon name="LogOut" />
+                                Sair
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente principal do Dashboard
+        const Dashboard = () => {
+            const [activeView, setActiveView] = useState('dashboard');
+            const [missoes, setMissoes] = useState([]);
+            const [demandas, setDemandas] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const { user } = useAuth();
+
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            const loadData = async () => {
+                console.log('[Dashboard] loadData chamado');
+                try {
+                    const [missoesRes, demandasRes] = await Promise.all([
+                        apiRequest('/api/missoes'),
+                        apiRequest('/api/demandas')
+                    ]);
+
+                    if (missoesRes.ok) {
+                        const missoesData = await missoesRes.json();
+                        console.log('[Dashboard] Missões carregadas:', missoesData.length);
+                        setMissoes(missoesData);
+                    }
+
+                    if (demandasRes.ok) {
+                        const demandasData = await demandasRes.json();
+                        console.log('[Dashboard] Demandas carregadas:', demandasData.length);
+                        setDemandas(demandasData);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar dados:', error);
+                } finally {
+                    setLoading(false);
                 }
             };
 
             const syncMissions = async () => {
-                if (window.confirm('Deseja sincronizar as demandas com missões? Isso criará missões para demandas sem missões associadas.')) {
-                    try {
-                        await apiRequest('/api/missoes/sync-from-demandas', { method: 'POST' });
-                        alert('Sincronização iniciada com sucesso!');
-                        fetchMissoes();
-                    } catch (err) {
-                        console.error('Erro ao sincronizar missões:', err);
-                        alert('Erro ao sincronizar missões: ' + (err.message || 'Verifique o console para mais detalhes.'));
-                    }
+                if (!window.confirm('Deseja sincronizar as demandas com as missões? Isso criará missões para demandas que ainda não possuem.')) {
+                    return;
                 }
-            };
-
-            const filteredMissoes = useMemo(() => {
-                return missoes.filter(missao => {
-                    const matchesSearch = searchTerm === '' ||
-                        missao.codigo_demanda.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        missao.captador_responsavel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        missao.consultor_solicitante.toLowerCase().includes(searchTerm.toLowerCase());
-                    const matchesStatus = filterStatus === '' || missao.status === filterStatus;
-                    const matchesCaptador = filterCaptador === '' || String(missao.captador_id) === filterCaptador;
-                    const matchesRegiao = filterRegiao === '' || missao.regiao_bairro === filterRegiao;
-                    return matchesSearch && matchesStatus && matchesCaptador && matchesRegiao;
-                });
-            }, [missoes, searchTerm, filterStatus, filterCaptador, filterRegiao]);
-
-            if (loading) return <div className="p-6 text-center">Carregando missões...</div>;
-            if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
-
-            return (
-                <div className="p-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Gerenciamento de Missões</h1>
-
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex space-x-2">
-                            <input
-                                type="text"
-                                placeholder="Buscar missões..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            />
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todos os Status</option>
-                                <option value="Em busca">Em busca</option>
-                                <option value="Encontrado">Encontrado</option>
-                                <option value="Locado">Locado</option>
-                            </select>
-                            <select
-                                value={filterCaptador}
-                                onChange={(e) => setFilterCaptador(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todos os Captadores</option>
-                                {usuarios.map(u => (
-                                    <option key={u.id} value={u.id}>{u.nome}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={filterRegiao}
-                                onChange={(e) => setFilterRegiao(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todas as Regiões</option>
-                                {regioesDisponiveis.map(regiao => (
-                                    <option key={regiao} value={regiao}>{regiao}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <button
-                            onClick={() => { setCurrentMissao(null); setIsModalOpen(true); }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-                        >
-                            <Icon name="Plus" /> Nova Missão
-                        </button>
-                    </div>
-
-                    {userRole !== 'captador' && (
-                        <div className="flex justify-end mb-4">
-                            <button
-                                onClick={syncMissions}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                🔄 Sincronizar Demandas com Missões
-                            </button>
-                            <span className="ml-3 text-sm text-gray-600">
-                                Clique para criar missões para demandas que ainda não possuem.
-                            </span>
-                        </div>
-                    )}
-
-                    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código Demanda</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Captador</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultor</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Região/Bairro</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredMissoes.map((missao) => (
-                                    <tr key={missao.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{missao.codigo_demanda}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{missao.captador_responsavel}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{missao.consultor_solicitante}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{missao.regiao_bairro}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{missao.status}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handleEdit(missao)} className="text-blue-600 hover:text-blue-900 mr-3"><Icon name="Edit" /></button>
-                                            <button onClick={() => handleDelete(missao.id)} className="text-red-600 hover:text-red-900"><Icon name="X" /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {isModalOpen && (
-                        <MissaoModal
-                            missao={currentMissao}
-                            onSave={handleSave}
-                            onClose={() => setIsModalOpen(false)}
-                            demandas={demandas}
-                            usuarios={usuarios}
-                            regioesDisponiveis={regioesDisponiveis}
-                        />
-                    )}
-                </div>
-            );
-        };
-
-        // Modal para Adicionar/Editar Missão
-        const MissaoModal = ({ missao, onSave, onClose, demandas, usuarios, regioesDisponiveis }) => {
-            const [formData, setFormData] = useState(missao || {
-                demanda_id: '',
-                codigo_demanda: '',
-                captador_responsavel: '',
-                captador_id: '',
-                consultor_solicitante: '',
-                regiao_bairro: '',
-                descricao_busca: '',
-                status: 'Em busca',
-                data_retorno: '',
-            });
-
-            useEffect(() => {
-                setFormData(missao || {
-                    codigo_demanda: '',
-                    consultor_locacao: '',
-                    cliente_interessado: '',
-                    contato: '',
-                    tipo_imovel: '',
-                    regiao_desejada: '',
-                    regiao_demanda: '',
-                    faixa_aluguel: '',
-                    caracteristicas_desejadas: '',
-                    prazo_necessidade: '',
-                    observacoes: '',
-                });
-            }, [missao]);
-
-            const handleChange = (e) => {
-                const { name, value } = e.target;
-                setFormData(prev => ({
-                    ...prev,
-                    [name]: value,
-                    // Preencher captador_responsavel e consultor_solicitante automaticamente
-                    ...(name === 'captador_id' && { captador_responsavel: usuarios.find(u => String(u.id) === value)?.nome || '' }),
-                    ...(name === 'demanda_id' && { codigo_demanda: demandas.find(d => String(d.id) === value)?.codigo_demanda || '' })
-                }));
-            };
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                onSave(formData);
-            };
-
-            return (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-                    <div className="relative p-8 border w-full max-w-2xl md:max-w-3xl shadow-lg rounded-md bg-white">
-                        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                            {missao ? 'Editar Missão' : 'Nova Missão'}
-                        </h3>
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="demanda_id" className="block text-sm font-medium text-gray-700">Demanda Associada</label>
-                                <select name="demanda_id" id="demanda_id" value={formData.demanda_id} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="">Selecione uma demanda</option>
-                                    {demandas.map(d => (
-                                        <option key={d.id} value={d.id}>{d.codigo_demanda} - {d.cliente_interessado}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="captador_id" className="block text-sm font-medium text-gray-700">Captador Responsável</label>
-                                <select name="captador_id" id="captador_id" value={formData.captador_id} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="">Selecione um captador</option>
-                                    {usuarios.map(u => (
-                                        <option key={u.id} value={u.id}>{u.nome}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="consultor_solicitante" className="block text-sm font-medium text-gray-700">Consultor Solicitante</label>
-                                <input type="text" name="consultor_solicitante" id="consultor_solicitante" value={formData.consultor_solicitante} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="regiao_bairro" className="block text-sm font-medium text-gray-700">Região/Bairro</label>
-                                <select name="regiao_bairro" id="regiao_bairro" value={formData.regiao_bairro} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="">Selecione uma região</option>
-                                    {regioesDisponiveis.map(regiao => (
-                                        <option key={regiao} value={regiao}>{regiao}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="descricao_busca" className="block text-sm font-medium text-gray-700">Descrição da Busca</label>
-                                <textarea name="descricao_busca" id="descricao_busca" value={formData.descricao_busca} onChange={handleChange} rows="3" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required></textarea>
-                            </div>
-                            <div>
-                                <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
-                                <select name="status" id="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="Em busca">Em busca</option>
-                                    <option value="Encontrado">Encontrado</option>
-                                    <option value="Locado">Locado</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="data_retorno" className="block text-sm font-medium text-gray-700">Data de Retorno (Opcional)</label>
-                                <input type="date" name="data_retorno" id="data_retorno" value={formData.data_retorno ? new Date(formData.data_retorno).toISOString().split('T')[0] : ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                            </div>
-                            <div className="md:col-span-2 flex justify-end space-x-3 mt-4">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Salvar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
-        // Componente de Gerenciamento de Usuários
-        const Usuarios = () => {
-            const { user } = useAuth();
-            const [usuarios, setUsuarios] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [currentUser, setCurrentUser] = useState(null);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [filterRole, setFilterRole] = useState('');
-            const [filterRegiao, setFilterRegiao] = useState('');
-            const [regioesDisponiveis, setRegioesDisponiveis] = useState([]);
-            const [gerentesDisponiveis, setGerentesDisponiveis] = useState([]);
-
-            const userRole = localStorage.getItem('role');
-            const userId = user?.id;
-
-            const fetchUsuarios = useCallback(async () => {
                 try {
-                    setLoading(true);
-                    setError(null);
-                    let endpoint = '/api/usuarios';
-
-                    if (userRole === 'gerente') {
-                        endpoint = `/api/usuarios?gerenteId=${userId}`;
-                    }
-
-                    const response = await apiRequest(endpoint);
-                    const data = await response.json();
-                    setUsuarios(data);
-                } catch (err) {
-                    console.error('Erro ao buscar usuários:', err);
-                    setError('Não foi possível carregar os usuários.');
-                } finally {
-                    setLoading(false);
-                }
-            }, [userRole, userId]);
-
-            const fetchRegioesAndGerentes = useCallback(async () => {
-                try {
-                    const [regioesRes, gerentesRes] = await Promise.all([
-                        apiRequest('/api/regioes'),
-                        apiRequest('/api/usuarios?tipo=gerente_regional')
-                    ]);
-                    const regioesData = await regioesRes.json();
-                    const gerentesData = await gerentesRes.json();
-                    setRegioesDisponiveis(regioesData.map(r => r.regiao));
-                    setGerentesDisponiveis(gerentesData);
-                } catch (err) {
-                    console.error('Erro ao buscar dados de apoio para usuários:', err);
-                }
-            }, []);
-
-            useEffect(() => {
-                if (user) {
-                    fetchUsuarios();
-                    fetchRegioesAndGerentes();
-                }
-            }, [user, fetchUsuarios, fetchRegioesAndGerentes]);
-
-            const handleEdit = (user) => {
-                setCurrentUser(user);
-                setIsModalOpen(true);
-            };
-
-            const handleDelete = async (id) => {
-                if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
-                    try {
-                        await apiRequest(`/api/usuarios/${id}`, { method: 'DELETE' });
-                        fetchUsuarios();
-                    } catch (err) {
-                        console.error('Erro ao excluir usuário:', err);
-                        setError('Não foi possível excluir o usuário.');
-                    }
-                }
-            };
-
-            const handleSave = async (userData) => {
-                try {
-                    if (userData.id) {
-                        await apiRequest(`/api/usuarios/${userData.id}`, {
-                            method: 'PUT',
-                            body: userData,
-                        });
+                    const response = await apiRequest('/api/sync-missions', { method: 'POST' });
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert(`Sincronização concluída!\n\nMissões criadas: ${result.missionsCreated}\nMissões já existentes: ${result.missionsAlreadyExist}\nDemandas sem captador: ${result.demandsWithoutCaptador}`);
+                        loadData(); // Recarregar os dados após a sincronização
                     } else {
-                        await apiRequest('/api/usuarios', {
-                            method: 'POST',
-                            body: userData,
-                        });
+                        alert('Erro ao sincronizar missões. Verifique o console para mais detalhes.');
                     }
-                    fetchUsuarios();
-                    setIsModalOpen(false);
-                    setCurrentUser(null);
-                } catch (err) {
-                    console.error('Erro ao salvar usuário:', err);
-                    setError('Não foi possível salvar o usuário.');
+                } catch (error) {
+                    console.error('Erro ao sincronizar missões:', error);
+                    alert('Erro ao sincronizar missões. Verifique o console para mais detalhes.');
                 }
             };
 
-            const filteredUsuarios = useMemo(() => {
-                return usuarios.filter(usuario => {
-                    const matchesSearch = searchTerm === '' ||
-                        usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        usuario.email.toLowerCase().includes(searchTerm.toLowerCase());
-                    const matchesRole = filterRole === '' || usuario.tipo === filterRole;
-                    const matchesRegiao = filterRegiao === '' || usuario.regiao === filterRegiao;
-                    return matchesSearch && matchesRole && matchesRegiao;
-                });
-            }, [usuarios, searchTerm, filterRole, filterRegiao]);
-
-            if (loading) return <div className="p-6 text-center">Carregando usuários...</div>;
-            if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
-
-            return (
-                <div className="p-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Gerenciamento de Usuários</h1>
-
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex space-x-2">
-                            <input
-                                type="text"
-                                placeholder="Buscar usuários..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            />
-                            <select
-                                value={filterRole}
-                                onChange={(e) => setFilterRole(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todos os Cargos</option>
-                                <option value="admin">Admin</option>
-                                <option value="diretor">Diretor</option>
-                                <option value="gerente_regional">Gerente Regional</option>
-                                <option value="captador">Captador</option>
-                            </select>
-                            <select
-                                value={filterRegiao}
-                                onChange={(e) => setFilterRegiao(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todas as Regiões</option>
-                                {regioesDisponiveis.map(regiao => (
-                                    <option key={regiao} value={regiao}>{regiao}</option>
-                                ))}
-                            </select>
+            const renderContent = () => {
+                if (loading) {
+                    return (
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
                         </div>
-                        <button
-                            onClick={() => { setCurrentUser(null); setIsModalOpen(true); }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-                        >
-                            <Icon name="Plus" /> Novo Usuário
-                        </button>
-                    </div>
-
-                    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Região</th>
-                                    <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredUsuarios.map((usuario) => (
-                                    <tr key={usuario.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{usuario.nome}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.tipo}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{usuario.regiao}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handleEdit(usuario)} className="text-blue-600 hover:text-blue-900 mr-3"><Icon name="Edit" /></button>
-                                            <button onClick={() => handleDelete(usuario.id)} className="text-red-600 hover:text-red-900"><Icon name="X" /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {isModalOpen && (
-                        <UsuarioModal
-                            usuario={currentUser}
-                            onSave={handleSave}
-                            onClose={() => setIsModalOpen(false)}
-                            regioesDisponiveis={regioesDisponiveis}
-                            gerentesDisponiveis={gerentesDisponiveis}
-                        />
-                    )}
-                </div>
-            );
-        };
-
-        // Modal para Adicionar/Editar Usuário
-        const UsuarioModal = ({ usuario, onSave, onClose, regioesDisponiveis, gerentesDisponiveis }) => {
-            const [formData, setFormData] = useState(usuario || {
-                nome: '',
-                email: '',
-                senha: '',
-                tipo: 'captador',
-                regiao: '',
-                regioes_responsavel: '',
-                gerente_responsavel_id: '',
-            });
-
-            useEffect(() => {
-                setFormData(usuario || {
-                    nome: '',
-                    email: '',
-                    senha: '',
-                    tipo: 'captador',
-                    regiao: '',
-                    regioes_responsavel: '',
-                    gerente_responsavel_id: '',
-                });
-            }, [usuario]);
-
-            const handleChange = (e) => {
-                const { name, value, type, checked } = e.target;
-                setFormData(prev => ({
-                    ...prev,
-                    [name]: type === 'checkbox' ? checked : value
-                }));
-            };
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                onSave(formData);
-            };
-
-            const isGerenteRegional = formData.tipo === 'gerente_regional';
-            const isCaptador = formData.tipo === 'captador';
-
-            return (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-                    <div className="relative p-8 border w-full max-w-2xl md:max-w-3xl shadow-lg rounded-md bg-white">
-                        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                            {usuario ? 'Editar Usuário' : 'Novo Usuário'}
-                        </h3>
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="nome" className="block text-sm font-medium text-gray-700">Nome</label>
-                                <input type="text" name="nome" id="nome" value={formData.nome} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                                <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            {!usuario && (
-                                <div>
-                                    <label htmlFor="senha" className="block text-sm font-medium text-gray-700">Senha</label>
-                                    <input type="password" name="senha" id="senha" value={formData.senha} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required={!usuario} />
-                                </div>
-                            )}
-                            <div>
-                                <label htmlFor="tipo" className="block text-sm font-medium text-gray-700">Cargo</label>
-                                <select name="tipo" id="tipo" value={formData.tipo} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="admin">Admin</option>
-                                    <option value="diretor">Diretor</option>
-                                    <option value="gerente_regional">Gerente Regional</option>
-                                    <option value="captador">Captador</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="regiao" className="block text-sm font-medium text-gray-700">Região</label>
-                                <select name="regiao" id="regiao" value={formData.regiao} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="">Selecione uma região</option>
-                                    {regioesDisponiveis.map(regiao => (
-                                        <option key={regiao} value={regiao}>{regiao}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            {isGerenteRegional && (
-                                <div>
-                                    <label htmlFor="regioes_responsavel" className="block text-sm font-medium text-gray-700">Regiões Responsáveis (separar por vírgula)</label>
-                                    <input type="text" name="regioes_responsavel" id="regioes_responsavel" value={formData.regioes_responsavel} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                                </div>
-                            )}
-                            {isCaptador && (
-                                <div>
-                                    <label htmlFor="gerente_responsavel_id" className="block text-sm font-medium text-gray-700">Gerente Responsável</label>
-                                    <select name="gerente_responsavel_id" id="gerente_responsavel_id" value={formData.gerente_responsavel_id} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                        <option value="">Nenhum</option>
-                                        {gerentesDisponiveis.map(gerente => (
-                                            <option key={gerente.id} value={gerente.id}>{gerente.nome}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-                            <div className="md:col-span-2 flex justify-end space-x-3 mt-4">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Salvar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
-        // Componente de Relatórios
-        const Relatorios = () => {
-            const { user } = useAuth();
-            const [relatorios, setRelatorios] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [currentRelatorio, setCurrentRelatorio] = useState(null);
-            const [filterTipo, setFilterTipo] = useState('');
-            const [filterRegiao, setFilterRegiao] = useState('');
-            const [regioesDisponiveis, setRegioesDisponiveis] = useState([]);
-
-            const userRole = localStorage.getItem('role');
-            const userId = user?.id;
-
-            const fetchRelatorios = useCallback(async () => {
-                try {
-                    setLoading(true);
-                    setError(null);
-                    let endpoint = '/api/relatorios';
-
-                    if (userRole === 'gerente') {
-                        endpoint = `/api/relatorios?gerenteId=${userId}`;
-                    }
-
-                    const response = await apiRequest(endpoint);
-                    const data = await response.json();
-                    setRelatorios(data);
-                } catch (err) {
-                    console.error('Erro ao buscar relatórios:', err);
-                    setError('Não foi possível carregar os relatórios.');
-                } finally {
-                    setLoading(false);
+                    );
                 }
-            }, [userRole, userId]);
 
-            const fetchRegioes = useCallback(async () => {
-                try {
-                    const response = await apiRequest('/api/regioes');
-                    const data = await response.json();
-                    setRegioesDisponiveis(data.map(r => r.regiao));
-                } catch (err) {
-                    console.error('Erro ao buscar regiões:', err);
+                switch (activeView) {
+                    case 'relatorios':
+                        return <RelatoriosPage />;
+                    case 'dashboard':
+                        return user.tipo === 'captador' ? 
+                            <PainelCaptador missoes={missoes} user={user} /> :
+                            <PainelExecutivo missoes={missoes} demandas={demandas} />;
+                    case 'demandas':
+                        return <NovaDemanda onDemandaCriada={loadData} />;
+                    case 'missoes':
+                        return <MissoesKanban user={user} onRefresh={loadData} />;
+
+                    default:
+                        return (
+                            <div className="p-6">
+                                <h2 className="text-2xl font-bold mb-4">
+                                    {activeView.charAt(0).toUpperCase() + activeView.slice(1)}
+                                </h2>
+                                <p className="text-gray-600">
+                                    Esta funcionalidade será implementada em breve.
+                                </p>
+                            </div>
+                        );
                 }
-            }, []);
-
-            useEffect(() => {
-                if (user) {
-                    fetchRelatorios();
-                    fetchRegioes();
-                }
-            }, [user, fetchRelatorios, fetchRegioes]);
-
-            const handleGenerateReport = async (reportData) => {
-                try {
-                    await apiRequest('/api/relatorios', {
-                        method: 'POST',
-                        body: { ...reportData, gerado_por_id: user.id },
-                    });
-                    fetchRelatorios();
-                    setIsModalOpen(false);
-                } catch (err) {
-                    console.error('Erro ao gerar relatório:', err);
-                    setError('Não foi possível gerar o relatório.');
-                }
-            };
-
-            const handleDelete = async (id) => {
-                if (window.confirm('Tem certeza que deseja excluir este relatório?')) {
-                    try {
-                        await apiRequest(`/api/relatorios/${id}`, { method: 'DELETE' });
-                        fetchRelatorios();
-                    } catch (err) {
-                        console.error('Erro ao excluir relatório:', err);
-                        setError('Não foi possível excluir o relatório.');
-                    }
-                }
-            };
-
-            const filteredRelatorios = useMemo(() => {
-                return relatorios.filter(relatorio => {
-                    const matchesType = filterTipo === '' || relatorio.tipo === filterTipo;
-                    const matchesRegiao = filterRegiao === '' || relatorio.regiao === filterRegiao;
-                    return matchesType && matchesRegiao;
-                });
-            }, [relatorios, filterTipo, filterRegiao]);
-
-            if (loading) return <div className="p-6 text-center">Carregando relatórios...</div>;
-            if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
-
-            return (
-                <div className="p-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Gerenciamento de Relatórios</h1>
-
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex space-x-2">
-                            <input
-                                type="text"
-                                placeholder="Buscar relatórios..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            />
-                            <select
-                                value={filterTipo}
-                                onChange={(e) => setFilterTipo(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todos os Tipos</option>
-                                <option value="demandas">Demandas</option>
-                                <option value="missoes">Missões</option>
-                                <option value="performance">Performance</option>
-                                <option value="geral">Geral</option>
-                            </select>
-                            <select
-                                value={filterRegiao}
-                                onChange={(e) => setFilterRegiao(e.target.value)}
-                                className="p-2 border border-gray-300 rounded-md"
-                            >
-                                <option value="">Todas as Regiões</option>
-                                {regioesDisponiveis.map(regiao => (
-                                    <option key={regiao} value={regiao}>{regiao}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-                        >
-                            <Icon name="Plus" /> Gerar Novo Relatório
-                        </button>
-                    </div>
-
-                    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Região</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gerado Por</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Geração</th>
-                                    <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredRelatorios.map((relatorio) => (
-                                    <tr key={relatorio.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{relatorio.titulo}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{relatorio.tipo}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{relatorio.regiao || 'N/A'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{relatorio.gerado_por_nome || 'Desconhecido'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(relatorio.data_geracao).toLocaleDateString()}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => alert('Visualizar relatório: ' + relatorio.titulo)} className="text-blue-600 hover:text-blue-900 mr-3"><Icon name="Eye" /></button>
-                                            <button onClick={() => handleDelete(relatorio.id)} className="text-red-600 hover:text-red-900"><Icon name="X" /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {isModalOpen && (
-                        <RelatorioModal
-                            onSave={handleGenerateReport}
-                            onClose={() => setIsModalOpen(false)}
-                            regioesDisponiveis={regioesDisponiveis}
-                        />
-                    )}
-                </div>
-            );
-        };
-
-        // Modal para Gerar Relatório
-        const RelatorioModal = ({ onSave, onClose, regioesDisponiveis }) => {
-            const [formData, setFormData] = useState({
-                titulo: '',
-                tipo: 'demandas',
-                filtros: '',
-                regiao: '',
-                data_inicio: '',
-                data_fim: '',
-            });
-
-            const handleChange = (e) => {
-                const { name, value } = e.target;
-                setFormData(prev => ({ ...prev, [name]: value }));
-            };
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                onSave(formData);
             };
 
             return (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-                    <div className="relative p-8 border w-full max-w-2xl md:max-w-3xl shadow-lg rounded-md bg-white">
-                        <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                            Gerar Novo Relatório
-                        </h3>
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="titulo" className="block text-sm font-medium text-gray-700">Título do Relatório</label>
-                                <input type="text" name="titulo" id="titulo" value={formData.titulo} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required />
-                            </div>
-                            <div>
-                                <label htmlFor="tipo" className="block text-sm font-medium text-gray-700">Tipo de Relatório</label>
-                                <select name="tipo" id="tipo" value={formData.tipo} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
-                                    <option value="demandas">Demandas</option>
-                                    <option value="missoes">Missões</option>
-                                    <option value="performance">Performance</option>
-                                    <option value="geral">Geral</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="regiao" className="block text-sm font-medium text-gray-700">Região (Opcional)</label>
-                                <select name="regiao" id="regiao" value={formData.regiao} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                    <option value="">Todas</option>
-                                    {regioesDisponiveis.map(regiao => (
-                                        <option key={regiao} value={regiao}>{regiao}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="data_inicio" className="block text-sm font-medium text-gray-700">Data Início (Opcional)</label>
-                                <input type="date" name="data_inicio" id="data_inicio" value={formData.data_inicio} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                            </div>
-                            <div>
-                                <label htmlFor="data_fim" className="block text-sm font-medium text-gray-700">Data Fim (Opcional)</label>
-                                <input type="date" name="data_fim" id="data_fim" value={formData.data_fim} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label htmlFor="filtros" className="block text-sm font-medium text-gray-700">Filtros Adicionais (JSON, Opcional)</label>
-                                <textarea name="filtros" id="filtros" value={formData.filtros} onChange={handleChange} rows="3" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
-                            </div>
-                            <div className="md:col-span-2 flex justify-end space-x-3 mt-4">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                <div className="flex">
+                    <Sidebar activeView={activeView} setActiveView={setActiveView} user={user} />
+                    <div className="ml-64 flex-1 min-h-screen bg-gray-50">
+                        {(user.tipo === 'admin' || user.tipo === 'diretor') && (
+                            <div className="p-4 bg-yellow-50 border-b border-yellow-200">
+                                <button 
+                                    onClick={syncMissions}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
                                 >
-                                    Cancelar
+                                    🔄 Sincronizar Demandas com Missões
                                 </button>
-                                <button
-                                    type="submit"
-                                    className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    Gerar Relatório
-                                </button>
+                                <span className="ml-3 text-sm text-gray-600">
+                                    Clique para criar missões para demandas que ainda não possuem.
+                                </span>
                             </div>
-                        </form>
+                        )}
+                        {renderContent()}
                     </div>
                 </div>
             );
         };
 
-        // Componente de Configurações
-        const Configuracoes = () => {
-            const { user } = useAuth();
-            const [configuracoes, setConfiguracoes] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [currentConfig, setCurrentConfig] = useState(null);
-            const [regioesDisponiveis, setRegioesDisponiveis] = useState([]);
-            const [gerentesDisponiveis, setGerentesDisponiveis] = useState([]);
-
-            const userRole = localStorage.getItem('role');
-
-            const fetchConfiguracoes = useCallback(async () => {
-                try {
-                    setLoading(true);
-                    setError(null);
-                    const response = await apiRequest('/api/configuracoes-regionais');
-                    const data = await response.json();
-                    setConfiguracoes(data);
-                } catch (err) {
-                    console.error('Erro ao buscar configurações:', err);
-                    setError('Não foi possível carregar as configurações regionais.');
-                } finally {
-                    setLoading(false);
-                }
-            }, []);
-
-            const fetchRegioesAndGerentes = useCallback(async () => {
-                try {
-                    const [regioesRes, gerentesRes] = await Promise.all([
-                        apiRequest('/api/regioes'),
-                        apiRequest('/api/usuarios?tipo=gerente_regional')
-                    ]);
-                    const regioesData = await regioesRes.json();
-                    const gerentesData = await gerentesRes.json();
-                    setRegioesDisponiveis(regioesData.map(r => r.regiao));
-                    setGerentesDisponiveis(gerentesData);
-                } catch (err) {
-                    console.error('Erro ao buscar dados de apoio para configurações:', err);
-                }
-            }, []);
-
-            useEffect(() => {
-                if (user) {
-                    fetchConfiguracoes();
-                    fetchRegioesAndGerentes();
-                }
-            }, [user, fetchConfiguracoes, fetchRegioesAndGerentes]);
-
-            const handleEdit = (config) => {
-                setCurrentConfig(config);
-                setIsModalOpen(true);
-            };
-
-            const handleDelete = async (id) => {
-                if (window.confirm('Tem certeza que deseja excluir esta configuração regional?')) {
-                    try {
-                        await apiRequest(`/api/configuracoes-regionais/${id}`, { method: 'DELETE' });
-                        fetchConfiguracoes();
-                    } catch (err) {
-                        console.error('Erro ao excluir configuração:', err);
-                        setError('Não foi possível excluir a configuração regional.');
-                    }
-                }
-            };
-
-            const handleSave = async (configData) => {
-                try {
-                    if (configData.id) {
-                        await apiRequest(`/api/configuracoes-regionais/${configData.id}`, {
-                            method: 'PUT',
-                            body: configData,
-                        });
-                    } else {
-                        await apiRequest('/api/configuracoes-regionais', {
-                            method: 'POST',
-                            body: configData,
-                        });
-                    }
-                    fetchConfiguracoes();
-                    setIsModalOpen(false);
-                    setCurrentConfig(null);
-                } catch (err) {
-                    console.error('Erro ao salvar configuração:', err);
-                    setError('Não foi possível salvar a configuração regional.');
-                }
-            };
-
-            if (loading) return <div className="p-6 text-center">Carregando configurações...</div>;
-            if (error) return <div className="p-6 text-center text-red-600">Erro: {error}</div>;
-
-            return (
-                <div className="p-6">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6">Configurações Regionais</h1>
-
-                    <div className="flex justify-end items-center mb-4">
-                        <button
-                            onClick={() => { setCurrentConfig(null); setIsModalOpen(true); }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-                        >
-                            <Icon name="Plus" /> Nova Configuração
-                        </button>
-                    </div>
-
-                    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Região</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gerente Responsável</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ativo</th>
-                                    <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {configuracoes.map((config) => (
-                                    <tr key={config.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{config.regiao}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{gerentesDisponiveis.find(g => g.id === config.gerente_responsavel_id)?.nome || 'N/A'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{config.ativo ? 'Sim' : 'Não'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handleEdit(config)} className="text-blue-600 hover:text-blue-900 mr-3"><Icon name="Edit" /></button>
-                                            <button onClick={() => handleDelete(config.id)} className="text-red-600 hover:text-red-900"><Icon name="X" /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {isModalOpen && (
-                        <ConfiguracaoModal
-                            configuracao={currentConfig}
-                            onSave={handleSave}
-                            onClose={() => setIsModalOpen(false)}
-                            regioesDisponiveis={regioesDisponiveis}
-                            gerentesDisponiveis={gerentesDisponiveis}
-                        />
-                    )}
-                </div>
-            );
-        };
-
-        // Componente de Roteamento
-        const AppRouter = () => {
+        // App principal
+        const App = () => {
             const { user, loading } = useAuth();
 
             if (loading) {
-                return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+                            <p className="mt-4 text-gray-600">Carregando...</p>
+                        </div>
+                    </div>
+                );
             }
 
-            if (!user) {
-                return <LoginForm />;
-            }
-
-            const path = window.location.hash;
-
-            let content;
-            if (path.startsWith('#demandas')) {
-                content = <Demandas />;
-            } else if (path.startsWith('#missoes')) {
-                content = <Missoes />;
-            } else if (path.startsWith('#usuarios')) {
-                content = <Usuarios />;
-            } else if (path.startsWith('#relatorios')) {
-                content = <Relatorios />;
-            } else if (path.startsWith('#configuracoes')) {
-                content = <Configuracoes />;
-            } else {
-                content = <Dashboard />;
-            }
-
-            return (
-                <Layout>
-                    {content}
-                </Layout>
-            );
+            return user ? <Dashboard /> : <LoginForm />;
         };
 
-        // Renderização principal
-        const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
+        // Renderizar a aplicação
+        const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(
             <AuthProvider>
-                <AppRouter />
+                <App />
             </AuthProvider>
         );
     </script>
