@@ -549,8 +549,8 @@ const response = await apiRequest('/api/demandas', {
         };
 
         // Componente de Missões Kanban
-        const MissoesKanban = ({ user, onRefresh }) => {
-            const [missoes, setMissoes] = useState([]);
+const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
+            const [missoes, setMissoes] = useState(missoesExternas || []);
             const [selectedMissao, setSelectedMissao] = useState(null);
             const [interacoes, setInteracoes] = useState([]);
             const [novaInteracao, setNovaInteracao] = useState("");
@@ -597,7 +597,7 @@ const response = await apiRequest('/api/demandas', {
 
             const updateMissaoStatus = async (missaoId, novoStatus) => {
 
-            const [interacoes, setInteracoes] = useState([]);
+
             const [novaInteracao, setNovaInteracao] = useState('');
             const [loading, setLoading] = useState(true);
 
