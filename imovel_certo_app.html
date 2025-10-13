@@ -111,18 +111,16 @@
                     setUser(parsedUser);
 
                     let cargo = parsedUser?.cargo;
-                    console.log("parsedUser?.cargo antes da lógica:", cargo);
-                    if (!cargo) {
-                        cargo = 'captador'; // Fallback se o cargo não estiver definido
-                    } else if (cargo === 'gerente_regional') {
+                    if (cargo === 'gerente_regional') {
                         cargo = 'gerente';
                     } else if (cargo === 'diretor') {
                         cargo = 'diretor';
                     } else if (cargo === 'administrador') {
                         cargo = 'administrador';
+                    } else {
+                        cargo = 'captador'; // Fallback se o cargo não estiver definido ou for desconhecido
                     }
                     localStorage.setItem('role', cargo);
-                    console.log('Cargo carregado:', cargo);
                 }
 
                 setLoading(false);
@@ -146,7 +144,6 @@
                     localStorage.setItem('user', JSON.stringify(data.user));
 
                     const cargoDoUsuario = data.user.cargo;
-                    console.log("data.user.cargo antes da lógica:", cargoDoUsuario);
                     let roleParaDefinir = 'captador'; // Padrão
 
                     if (cargoDoUsuario === 'diretor') {
@@ -156,9 +153,7 @@
                     } else if (cargoDoUsuario === 'administrador') {
                         roleParaDefinir = 'administrador';
                     }
-                    localStorage.setItem('role', roleParaDefinir);
-                    
-                    console.log('Cargo definido:', cargo);    
+                    localStorage.setItem('role', roleParaDefinir);    
                     setUser(data.user);
                     return data;
                 } catch (error) {
