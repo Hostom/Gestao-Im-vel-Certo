@@ -111,6 +111,7 @@
                     setUser(parsedUser);
 
                     const cargoDoUsuario = parsedUser?.cargo;
+                    console.log('DEBUG: cargoDoUsuario do localStorage:', cargoDoUsuario);
                     let roleParaDefinir = 'captador'; // Padrão
 
                     if (cargoDoUsuario === 'diretor') {
@@ -120,6 +121,7 @@
                     } else if (cargoDoUsuario === 'admin') { // Assumindo 'admin' para administrador
                         roleParaDefinir = 'administrador';
                     }
+                    console.log('DEBUG: roleParaDefinir após lógica do localStorage:', roleParaDefinir);
                     localStorage.setItem('role', roleParaDefinir);
                 }
 
@@ -144,6 +146,7 @@
                     localStorage.setItem('user', JSON.stringify(data.user));
 
                     const cargoDoUsuario = data.user.cargo;
+                    console.log('DEBUG: cargoDoUsuario recebido do backend (login):', cargoDoUsuario);
                     let roleParaDefinir = 'captador'; // Padrão
 
                     if (cargoDoUsuario === 'diretor') {
@@ -153,6 +156,7 @@
                     } else if (cargoDoUsuario === 'admin') { // Assumindo 'admin' para administrador
                         roleParaDefinir = 'administrador';
                     }
+                    console.log('DEBUG: roleParaDefinir após lógica do backend (login):', roleParaDefinir);
                     localStorage.setItem('role', roleParaDefinir);    
                     setUser(data.user);
                     return data;
