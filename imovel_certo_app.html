@@ -375,10 +375,10 @@ const response = await apiRequest('/api/demandas', {
     method: 'POST',
     headers: {
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
     },
-    body: formData,
+    body: JSON.stringify(formData),
 });
-
                     
                     if (!response.ok) {
                         const errorData = await response.json();
