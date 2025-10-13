@@ -128,6 +128,17 @@
                     const data = await response.json();
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
+
+                    const cargo = data.user.cargo;
+
+                    if (cargo === 'diretor') {
+                         localStorage.setItem('role', 'diretor');
+                     } else if (cargo === 'gerente_regional') {
+                         localStorage.setItem('role', 'gerente');
+                } else {
+                          localStorage.setItem('role', 'captador');
+                }
+                    console.log('Cargo definido:', cargo);    
                     setUser(data.user);
                     return data;
                 } catch (error) {
