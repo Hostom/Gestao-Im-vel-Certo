@@ -430,8 +430,12 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
         regiaoDemanda
     } = req.body || {};
 
-    // Normalizar campo de região: preferir regiaoDemanda, senão regiaoDesejada, senão região do usuário, senão 'Geral'
-    const regiaoFinal = (regiaoDemanda || regiaoDesejada || req.user.regiao || 'Geral').trim();
+   // Função para normalizar o nome da região (sem acentos, espaços e tudo minúsculo)
+const normalizarRegiao = (r) =>
+  r ? r.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_') : 'geral';
+
+// Normalizar campo de região: preferir regiaoDemanda, senão regiaoDesejada, senão região do usuário, senão 'geral'
+const regiaoFinal = normalizarRegiao(regiaoDemanda || regiaoDesejada || req.user.regiao || 'geral');
 
     // Mapear para snake_case para inserir no DB
     const mapped = {
