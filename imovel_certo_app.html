@@ -11,27 +11,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="data:,">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .kanban-column { min-width: 300px; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+        }
+        .kanban-column { 
+            min-width: 300px; 
+        }
     </style>
 </head>
 <body class="bg-gray-100">
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- CONFIGURAÇÃO DA API (CORRIGIDA) ---
+        const { useState, useEffect, useCallback, useMemo, createContext, useContext } = React;
+
+        // Configuração da API
         const API_URL = window.location.hostname === 'localhost' 
             ? 'http://localhost:3001' 
             : `${window.location.protocol}//${window.location.host}`;
         
-        // Log para debug
         console.log('API_URL configurada:', API_URL);
         console.log('Ambiente:', window.location.hostname);
-        // -------------------------
 
-        const { useState, useEffect, useCallback, useMemo } = React;
-
-        // Componente de ícone simples usando emojis
+        // Componente de ícone usando emojis
         const Icon = ({ name }) => {
             const icons = {
                 'BarChart2': '📊',
@@ -63,63 +65,58 @@
         };
 
         // Utilitário para fazer requisições autenticadas
-       const apiRequest = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('token');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` }),
-    ...options.headers,
-  };
+        const apiRequest = async (endpoint, options = {}) => {
+            const token = localStorage.getItem('token');
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+                ...options.headers,
+            };
 
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers,
-      body: options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined,
-    });
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    ...options,
+                    headers,
+                    body: options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined,
+                });
 
-    // Se o token expirou ou for inválido
-    if (response.status === 401 || response.status === 403) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      alert('Sessão expirada. Faça login novamente.');
-      window.location.reload();
-      // Retornar uma Promise que nunca resolve para evitar que o código continue
-      return new Promise(() => {});
-    }
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    alert('Sessão expirada. Faça login novamente.');
+                    window.location.reload();
+                    return new Promise(() => {});
+                }
 
-    return response;
-  } catch (error) {
-    console.error('Erro na requisição:', error);
-    throw new Error('Erro de conexão com o servidor');
-  }
-};
-
+                return response;
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                throw new Error('Erro de conexão com o servidor');
+            }
+        };
 
         // Context para autenticação
-        const AuthContext = React.createContext();
+        const AuthContext = createContext();
 
         const AuthProvider = ({ children }) => {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-  const token = localStorage.getItem('token');
-  const userData = localStorage.getItem('user');
+                const token = localStorage.getItem('token');
+                const userData = localStorage.getItem('user');
 
-  if (token && userData) {
-    const user = JSON.parse(userData);
-    setUser(user);
+                if (token && userData) {
+                    const parsedUser = JSON.parse(userData);
+                    setUser(parsedUser);
 
-    // 🟦 Ajuste para garantir que o cargo seja reconhecido corretamente
-    const cargo = user?.cargo || 'captador';
-    localStorage.setItem('role', cargo);
-    console.log('Cargo carregado:', cargo);
-  }
+                    const cargo = parsedUser?.cargo || 'captador';
+                    localStorage.setItem('role', cargo);
+                    console.log('Cargo carregado:', cargo);
+                }
 
-  setLoading(false);
-}, []); // ✅ fecha corretamente o useEffect
-
+                setLoading(false);
+            }, []);
 
             const login = async (email, senha) => {
                 try {
@@ -141,12 +138,12 @@
                     const cargo = data.user.cargo;
 
                     if (cargo === 'diretor') {
-                         localStorage.setItem('role', 'diretor');
-                     } else if (cargo === 'gerente_regional') {
-                         localStorage.setItem('role', 'gerente');
-                } else {
-                          localStorage.setItem('role', 'captador');
-                }
+                        localStorage.setItem('role', 'diretor');
+                    } else if (cargo === 'gerente_regional') {
+                        localStorage.setItem('role', 'gerente');
+                    } else {
+                        localStorage.setItem('role', 'captador');
+                    }
                     
                     console.log('Cargo definido:', cargo);    
                     setUser(data.user);
@@ -171,7 +168,7 @@
         };
 
         const useAuth = () => {
-            const context = React.useContext(AuthContext);
+            const context = useContext(AuthContext);
             if (!context) {
                 throw new Error('useAuth deve ser usado dentro de AuthProvider');
             }
@@ -262,103 +259,77 @@
         };
 
         // Componentes de formulário
-        const FormInput = ({ name, label, icon, required, value, onChange, placeholder, type = "text" }) => (
+        const FormInput = ({ label, name, type = "text", value, onChange, required = false, placeholder = "" }) => (
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <Icon name={icon} />
-                    {label} {required && <span className="text-red-500">*</span>}
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <input
                     type={type}
                     name={name}
                     value={value}
                     onChange={onChange}
-                    placeholder={placeholder}
                     required={required}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={placeholder}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>
         );
 
-        const FormSelect = ({ name, label, icon, options, value, onChange }) => (
+        const FormSelect = ({ label, name, value, onChange, options, required = false }) => (
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <Icon name={icon} />
-                    {label}
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <select
                     name={name}
                     value={value}
                     onChange={onChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required={required}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                    {options.map(option => (
-                        <option key={option} value={option}>{option}</option>
+                    <option value="">Selecione...</option>
+                    {options.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                 </select>
             </div>
         );
 
-        const FormTextarea = ({ name, label, value, onChange, placeholder }) => (
+        const FormTextarea = ({ label, name, value, onChange, required = false, rows = 3 }) => (
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
                 <textarea
                     name={name}
                     value={value}
                     onChange={onChange}
-                    placeholder={placeholder}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required={required}
+                    rows={rows}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>
         );
 
-        // Componente KPI Card
-        const KPICard = ({ title, value, icon, color = 'blue' }) => {
-            const colorClasses = {
-                blue: 'bg-blue-50 text-blue-600 border-blue-200',
-                green: 'bg-green-50 text-green-600 border-green-200',
-                purple: 'bg-purple-50 text-purple-600 border-purple-200',
-                yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200',
-                red: 'bg-red-50 text-red-600 border-red-200'
-            };
-
-            return (
-                <div className={`p-6 rounded-lg border-2 ${colorClasses[color]}`}>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium opacity-75">{title}</p>
-                            <p className="text-3xl font-bold mt-1">{value}</p>
-                        </div>
-                        <div className="text-2xl opacity-75">
-                            <Icon name={icon} />
-                        </div>
+        // Componente de KPI Card
+        const KPICard = ({ title, value, icon }) => (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-sm text-gray-600">{title}</p>
+                        <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
                     </div>
+                    {icon && <div className="text-4xl">{icon}</div>}
                 </div>
-            );
-        };
-
-        const KPIcard = ({ title, value }) => (
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
             </div>
         );
 
-        // Nova Demanda (apenas gerentes)
-        const NovaDemanda = ({ onDemandaCriada }) => {
-            const [isSubmitting, setIsSubmitting] = useState(false);
+        // Componente de Nova Demanda
+        const NovaDemanda = ({ onClose, onSuccess }) => {
             const [formData, setFormData] = useState({
-                consultorLocacao: 'Matheus',
-                clienteInteressado: '',
-                contato: '',
-                tipoImovel: 'Apartamento',
-                regiaoDesejada: '',
-                regiaoDemanda: 'Geral',
-                faixaAluguel: 'De 8mil a 10mil',
-                caracteristicasDesejadas: '',
-                prazoNecessidade: 'Urgente',
-                observacoes: ''
+                codigo_demanda: '',
+                descricao_busca: '',
+                tipo_imovel: '',
+                localizacao: '',
+                valor_min: '',
+                valor_max: '',
+                captador_responsavel: '',
+                prioridade: 'media'
             });
 
             const handleChange = (e) => {
@@ -368,134 +339,159 @@
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                setIsSubmitting(true);
                 try {
-                   const token = localStorage.getItem('token'); // Recupera o token do login
-
-const response = await apiRequest('/api/demandas', {
-    method: 'POST',
-    headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(formData),
-});
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Falha ao criar a demanda.');
-                    }
-                    
-                    alert('Demanda enviada para captação com sucesso!');
-                    setFormData({
-                        consultorLocacao: 'Matheus',
-                        clienteInteressado: '',
-                        contato: '',
-                        tipoImovel: 'Apartamento',
-                        regiaoDesejada: '',
-                        regiaoDemanda: 'Geral',
-                        faixaAluguel: 'De 8mil a 10mil',
-                        caracteristicasDesejadas: '',
-                        prazoNecessidade: 'Urgente',
-                        observacoes: ''
+                    const response = await apiRequest('/api/demandas', {
+                        method: 'POST',
+                        body: formData
                     });
-                    console.log('[NovaDemanda] Chamando onDemandaCriada');
-                    if (onDemandaCriada) onDemandaCriada();
+
+                    if (response.ok) {
+                        alert('Demanda criada com sucesso!');
+                        onSuccess();
+                        onClose();
+                    } else {
+                        const error = await response.json();
+                        alert('Erro ao criar demanda: ' + (error.error || 'Erro desconhecido'));
+                    }
                 } catch (error) {
-                    console.error("Erro ao submeter:", error);
-                    alert(`Erro ao criar demanda: ${error.message}`);
-                } finally {
-                    setIsSubmitting(false);
+                    console.error('Erro ao criar demanda:', error);
+                    alert('Erro ao criar demanda');
                 }
             };
 
-            const inputFields = [
-                { name: 'clienteInteressado', label: 'Cliente Interessado', icon: 'User', required: true },
-                { name: 'contato', label: 'Contato (Telefone/Email)', icon: 'Phone', required: true },
-                { name: 'regiaoDesejada', label: 'Região / Bairro Desejado', icon: 'MapPin', required: true },
-            ];
-
-            const selectFields = {
-                consultorLocacao: ["Israel", "Matheus", "Bruna K", "Kerolin", "Stephanie", "Lidiane"],
-                tipoImovel: ["Apartamento", "Casa", "Sala Comercial", "Loja", "Galpão", "Terreno"],
-                faixaAluguel: ["De 8mil a 10mil", "De 10mil a 12mil", "De 12mil a 15mil", "De 15mil a 20mil", "De 20mil a 25mil", "De 25 mil a 30mil", "Acima de 30mil"],
-                prazoNecessidade: ["Urgente", "Até 7 dias", "Até 15 dias"],
-                regiaoDemanda: ["Geral", "Itapema", "Balneario_Camboriu", "Itajai"],
-            };
-
             return (
-                <div className="max-w-4xl mx-auto">
-                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Nova Demanda de Locação</h2>
-                    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormSelect name="consultorLocacao" label="Consultor de Locação" icon="Briefcase" options={selectFields.consultorLocacao} value={formData.consultorLocacao} onChange={handleChange} />
-                            {inputFields.map(field => <FormInput key={field.name} {...field} value={formData[field.name]} onChange={handleChange} />)}
-                            <FormSelect name="tipoImovel" label="Tipo de Imóvel" icon="Building" options={selectFields.tipoImovel} value={formData.tipoImovel} onChange={handleChange} />
-                            <FormSelect name="regiaoDemanda" label="Região da Demanda" icon="MapPin" options={selectFields.regiaoDemanda} value={formData.regiaoDemanda} onChange={handleChange} />
-                            <FormSelect name="faixaAluguel" label="Faixa de Aluguel" icon="Star" options={selectFields.faixaAluguel} value={formData.faixaAluguel} onChange={handleChange} />
-                            <FormSelect name="prazoNecessidade" label="Prazo de Necessidade" icon="Calendar" options={selectFields.prazoNecessidade} value={formData.prazoNecessidade} onChange={handleChange} />
-                        </div>
-
-                        <FormTextarea name="caracteristicasDesejadas" label="Características Desejadas" value={formData.caracteristicasDesejadas} onChange={handleChange} placeholder="Ex: 3 suítes, sacada com churrasqueira, mobiliado..." />
-                        <FormTextarea name="observacoes" label="Observações" value={formData.observacoes} onChange={handleChange} placeholder="Informações adicionais relevantes..." />
-
-                        <div className="text-right">
-                            <button type="submit" disabled={isSubmitting} className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300">
-                                {isSubmitting ? <Icon name="Clock" /> : <Icon name="FilePlus" />}
-                                {isSubmitting ? 'Enviando...' : 'Enviar para Captação'}
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold">Nova Demanda</h2>
+                            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                                <Icon name="X" />
                             </button>
                         </div>
-                    </form>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <FormInput
+                                label="Código da Demanda"
+                                name="codigo_demanda"
+                                value={formData.codigo_demanda}
+                                onChange={handleChange}
+                                required
+                            />
+
+                            <FormTextarea
+                                label="Descrição da Busca"
+                                name="descricao_busca"
+                                value={formData.descricao_busca}
+                                onChange={handleChange}
+                                required
+                                rows={4}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormSelect
+                                    label="Tipo de Imóvel"
+                                    name="tipo_imovel"
+                                    value={formData.tipo_imovel}
+                                    onChange={handleChange}
+                                    required
+                                    options={[
+                                        { value: 'casa', label: 'Casa' },
+                                        { value: 'apartamento', label: 'Apartamento' },
+                                        { value: 'comercial', label: 'Comercial' },
+                                        { value: 'terreno', label: 'Terreno' }
+                                    ]}
+                                />
+
+                                <FormInput
+                                    label="Localização"
+                                    name="localizacao"
+                                    value={formData.localizacao}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormInput
+                                    label="Valor Mínimo"
+                                    name="valor_min"
+                                    type="number"
+                                    value={formData.valor_min}
+                                    onChange={handleChange}
+                                />
+
+                                <FormInput
+                                    label="Valor Máximo"
+                                    name="valor_max"
+                                    type="number"
+                                    value={formData.valor_max}
+                                    onChange={handleChange}
+                                />
+                            </div>
+
+                            <FormInput
+                                label="Captador Responsável"
+                                name="captador_responsavel"
+                                value={formData.captador_responsavel}
+                                onChange={handleChange}
+                                required
+                            />
+
+                            <FormSelect
+                                label="Prioridade"
+                                name="prioridade"
+                                value={formData.prioridade}
+                                onChange={handleChange}
+                                required
+                                options={[
+                                    { value: 'alta', label: 'Alta' },
+                                    { value: 'media', label: 'Média' },
+                                    { value: 'baixa', label: 'Baixa' }
+                                ]}
+                            />
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                >
+                                    Criar Demanda
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             );
         };
 
-        // Painel Executivo (Gerente)
-        const PainelExecutivo = ({ missoes, demandas }) => {
+        // Painel Executivo
+        const PainelExecutivo = ({ missoes }) => {
             const kpis = useMemo(() => {
-                const missoesEnviadas = missoes.length;
-                const missoesConcluidas24h = missoes.filter(m => {
-                    if (!m.data_retorno) return false;
-                    const diff = new Date(m.data_retorno).getTime() - new Date(m.data_missao).getTime();
-                    return diff / (1000 * 60 * 60) <= 24;
-                }).length;
+                const totalMissoes = missoes.length;
+                const encontrados = missoes.filter(m => m.status === 'Encontrado' || m.status === 'Locado').length;
                 const locados = missoes.filter(m => m.status === 'Locado').length;
-                const taxaConversao = missoesEnviadas > 0 ? ((locados / missoesEnviadas) * 100).toFixed(1) + '%' : '0%';
+                const emAndamento = missoes.filter(m => m.status === 'Em busca').length;
+                const taxaConversao = totalMissoes > 0 ? ((locados / totalMissoes) * 100).toFixed(1) : 0;
 
-                return {
-                    totalDemandas: demandas.length,
-                    missoesEnviadas,
-                    missoesConcluidas24h,
-                    taxaConversao,
-                };
-            }, [missoes, demandas]);
-
-            const statusCounts = useMemo(() => {
-                return missoes.reduce((acc, m) => {
-                    acc[m.status] = (acc[m.status] || 0) + 1;
-                    return acc;
-                }, {});
+                return { totalMissoes, encontrados, locados, emAndamento, taxaConversao };
             }, [missoes]);
 
             return (
                 <div>
                     <h2 className="text-3xl font-bold mb-6 text-gray-800">Painel Executivo</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <KPIcard title="Total de Demandas" value={kpis.totalDemandas} />
-                        <KPIcard title="Missões Enviadas" value={kpis.missoesEnviadas} />
-                        <KPIcard title="Missões Concluídas (24h)" value={kpis.missoesConcluidas24h} />
-                        <KPIcard title="Taxa de Conversão" value={kpis.taxaConversao} />
-                    </div>
-                    <div className="mt-8 bg-white p-6 rounded-lg shadow">
-                        <h3 className="text-xl font-semibold mb-4">Status das Missões</h3>
-                        <div className="flex space-x-4">
-                            {Object.entries(statusCounts).map(([status, count]) => (
-                                <div key={status} className="text-center p-4 bg-gray-50 rounded-lg flex-1">
-                                    <p className="text-sm text-gray-500">{status}</p>
-                                    <p className="text-2xl font-bold">{count}</p>
-                                </div>
-                            ))}
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                        <KPICard title="Total de Missões" value={kpis.totalMissoes} icon="📊" />
+                        <KPICard title="Em Andamento" value={kpis.emAndamento} icon="⏰" />
+                        <KPICard title="Encontrados" value={kpis.encontrados} icon="🏢" />
+                        <KPICard title="Locados" value={kpis.locados} icon="✅" />
+                        <KPICard title="Taxa de Conversão" value={`${kpis.taxaConversao}%`} icon="🏆" />
                     </div>
                 </div>
             );
@@ -518,10 +514,10 @@ const response = await apiRequest('/api/demandas', {
                 <div>
                     <h2 className="text-3xl font-bold mb-6 text-gray-800">Meu Painel</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <KPIcard title="Total de Missões" value={kpis.totalMissoes} />
-                        <KPIcard title="Em Andamento" value={kpis.emAndamento} />
-                        <KPIcard title="Encontrados" value={kpis.encontrados} />
-                        <KPIcard title="Locados" value={kpis.locados} />
+                        <KPICard title="Total de Missões" value={kpis.totalMissoes} />
+                        <KPICard title="Em Andamento" value={kpis.emAndamento} />
+                        <KPICard title="Encontrados" value={kpis.encontrados} />
+                        <KPICard title="Locados" value={kpis.locados} />
                     </div>
                     
                     <div className="mt-8 bg-white p-6 rounded-lg shadow">
@@ -549,59 +545,34 @@ const response = await apiRequest('/api/demandas', {
         };
 
         // Componente de Missões Kanban
-const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
+        const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
             const [missoes, setMissoes] = useState(missoesExternas || []);
             const [selectedMissao, setSelectedMissao] = useState(null);
             const [interacoes, setInteracoes] = useState([]);
-            const [novaInteracao, setNovaInteracao] = useState("");
+            const [novaInteracao, setNovaInteracao] = useState('');
             const [loading, setLoading] = useState(true);
 
-            const columns = ["Em busca", "Encontrado", "Locado"];
+            const columns = ['Em busca', 'Encontrado', 'Locado'];
 
             const loadMissoes = useCallback(async () => {
                 setLoading(true);
                 try {
-                    const response = await apiRequest("/api/missoes");
+                    const response = await apiRequest('/api/missoes');
                     if (response.ok) {
                         const data = await response.json();
-                        // Filtrar missões no frontend para captadores, se o backend não o fez
                         const filteredData = user.tipo === 'captador' 
                             ? data.filter(missao => missao.captador_id === user.id) 
                             : data;
                         setMissoes(filteredData);
                     } else {
-                        console.error("loadMissoes response not ok", response);
+                        console.error('loadMissoes response not ok', response);
                     }
                 } catch (error) {
-                    console.error("Erro ao carregar missões:", error);
+                    console.error('Erro ao carregar missões:', error);
                 } finally {
                     setLoading(false);
                 }
             }, [user]);
-
-            useEffect(() => {
-                loadMissoes();
-            }, [loadMissoes, onRefresh]); // Adicionado onRefresh para recarregar quando uma nova demanda é criada
-
-            const loadInteracoes = async (missaoId) => {
-                try {
-                    const response = await apiRequest(`/api/missoes/${missaoId}/interacoes`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setInteracoes(data);
-                    }
-                } catch (error) {
-                    console.error("Erro ao carregar interações:", error);
-                }
-            };
-
-            const updateMissaoStatus = async (missaoId, novoStatus) => {
-
-
-            const [novaInteracao, setNovaInteracao] = useState('');
-            const [loading, setLoading] = useState(true);
-
-            const columns = ['Em busca', 'Encontrado', 'Locado'];
 
             useEffect(() => {
                 console.log('[MissoesKanban] missoesExternas recebidas:', missoesExternas);
@@ -611,23 +582,7 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                 } else {
                     loadMissoes();
                 }
-            }, [missoesExternas]);
-
-            const loadMissoes = async () => {
-                try {
-                    const response = await apiRequest('/api/missoes');
-                    if (response.ok) {
-                        const data = await response.json();
-                        setMissoes(data);
-                    } else {
-                        console.error('loadMissoes response not ok', response);
-                    }
-                } catch (error) {
-                    console.error('Erro ao carregar missões:', error);
-                } finally {
-                    setLoading(false);
-                }
-            };
+            }, [missoesExternas, loadMissoes, onRefresh]);
 
             const loadInteracoes = async (missaoId) => {
                 try {
@@ -645,7 +600,7 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                 try {
                     const response = await apiRequest(`/api/missoes/${missaoId}`, {
                         method: 'PUT',
-                        body: JSON.stringify({ status: novoStatus }),
+                        body: { status: novoStatus }
                     });
                     if (response.ok) {
                         setMissoes(prev => prev.map(m => m.id === missaoId ? { ...m, status: novoStatus } : m));
@@ -663,7 +618,7 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                 try {
                     const response = await apiRequest(`/api/missoes/${selectedMissao.id}/interacoes`, {
                         method: 'POST',
-                        body: JSON.stringify({ descricao: novaInteracao }),
+                        body: { descricao: novaInteracao }
                     });
                     if (response.ok) {
                         setNovaInteracao('');
@@ -683,58 +638,74 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                 return 'bg-green-500';
             };
 
-            const handleDragStart = (e, missaoId) => { e.dataTransfer.setData('text/plain', missaoId); };
-            const handleDragOver = (e) => { e.preventDefault(); };
-            const handleDrop = (e, novoStatus) => { e.preventDefault(); const missaoId = parseInt(e.dataTransfer.getData('text/plain')); updateMissaoStatus(missaoId, novoStatus); };
+            const handleDragStart = (e, missao) => {
+                e.dataTransfer.setData('missaoId', missao.id.toString());
+            };
 
-            const openMissaoDetails = (missao) => { setSelectedMissao(missao); loadInteracoes(missao.id); };
+            const handleDragOver = (e) => {
+                e.preventDefault();
+            };
 
-            if (loading) return <div className="flex justify-center items-center h-64">Carregando missões...</div>;
+            const handleDrop = (e, novoStatus) => {
+                e.preventDefault();
+                const missaoId = parseInt(e.dataTransfer.getData('missaoId'));
+                updateMissaoStatus(missaoId, novoStatus);
+            };
 
-            const missoesExibidas = user.tipo === 'captador' ? missoes.filter(m => m.captador_responsavel === user.nome) : missoes;
-            console.log('[MissoesKanban] missoesExibidas:', missoesExibidas);
-            console.log('[MissoesKanban] Status das missões:', missoesExibidas.map(m => ({id: m.id, codigo: m.codigo_demanda, status: m.status})));
+            const openMissaoDetails = (missao) => {
+                setSelectedMissao(missao);
+                loadInteracoes(missao.id);
+            };
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center h-64">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                            <p className="mt-4 text-gray-600">Carregando missões...</p>
+                        </div>
+                    </div>
+                );
+            }
 
             return (
                 <div>
-                    <h2 className="text-3xl font-bold mb-6 text-gray-800">
-                        {user.tipo === 'captador' ? 'Minhas Missões' : 'Missões de Captação'}
-                    </h2>
-                    <div className="flex space-x-4 overflow-x-auto pb-4">
-                        {columns.map(status => (
-                            <div key={status} className="kanban-column bg-gray-100 rounded-lg p-3 flex-shrink-0" onDrop={(e)=>handleDrop(e,status)} onDragOver={handleDragOver}>
-                                <h3 className="font-semibold text-lg mb-4 px-2">{status} ({missoesExibidas.filter(m => m.status === status).length})</h3>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">Quadro Kanban de Missões</h2>
+                    <div className="flex gap-6 overflow-x-auto pb-4">
+                        {columns.map(column => (
+                            <div
+                                key={column}
+                                className="kanban-column bg-gray-50 rounded-lg p-4"
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, column)}
+                            >
+                                <h3 className="font-semibold text-lg mb-4 text-gray-700">{column}</h3>
                                 <div className="space-y-3">
-                                    {missoesExibidas.filter(m => m.status === status).map(missao => (
-                                        <div key={missao.id} draggable onDragStart={(e)=>handleDragStart(e,missao.id)} className="bg-white p-4 rounded-md shadow-sm cursor-grab active:cursor-grabbing">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold text-gray-800">{missao.codigo_demanda}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">{missao.consultor_solicitante || missao.consultor_locacao || ''}</p>
+                                    {missoes
+                                        .filter(m => m.status === column)
+                                        .map(missao => (
+                                            <div
+                                                key={missao.id}
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, missao)}
+                                                className="bg-white p-4 rounded-lg shadow cursor-move hover:shadow-lg transition-shadow"
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="font-semibold text-gray-900">{missao.codigo_demanda}</h4>
+                                                    <div className={`w-3 h-3 rounded-full ${getSLAColor(missao.data_criacao)}`}></div>
                                                 </div>
-                                                <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{missao.captador_responsavel}</span>
-                                            </div>
-
-                                            <p className="text-sm text-gray-600 mt-2">{missao.descricao_busca}</p>
-                                            <p className="text-xs text-gray-500 mt-1">Bairro: {missao.regiao_bairro}</p>
-
-                                            <div className="mt-2 text-sm text-gray-700">
-                                                <p><strong>Cliente:</strong> {missao.cliente_interessado || '—'}</p>
-                                                <p><strong>Contato:</strong> {missao.contato || '—'}</p>
-                                            </div>
-
-                                            {missao.status === 'Em busca' && (
-                                                <div className="mt-3">
-                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                                        <div className={`h-1.5 rounded-full ${getSLAColor(missao.data_missao)}`} style={{ width: '100%' }}></div>
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 mt-1">SLA 48h</p>
+                                                <p className="text-sm text-gray-600 mb-2">{missao.descricao_busca}</p>
+                                                <div className="flex justify-between items-center text-xs text-gray-500">
+                                                    <span><Icon name="User" />{missao.captador_responsavel}</span>
+                                                    <button
+                                                        onClick={() => openMissaoDetails(missao)}
+                                                        className="text-blue-600 hover:text-blue-800"
+                                                    >
+                                                        <Icon name="Eye" />
+                                                    </button>
                                                 </div>
-                                            )}
-
-                                            <button onClick={() => openMissaoDetails(missao)} className="mt-2 text-xs text-blue-600 hover:text-blue-800"><Icon name="Eye" />Ver detalhes</button>
-                                        </div>
-                                    ))}
+                                            </div>
+                                        ))}
                                 </div>
                             </div>
                         ))}
@@ -742,46 +713,60 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
 
                     {selectedMissao && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+                            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xl font-bold">Detalhes da Missão - {selectedMissao.codigo_demanda}</h3>
-                                    <button onClick={() => setSelectedMissao(null)} className="text-gray-500 hover:text-gray-700"><Icon name="X" /></button>
+                                    <h2 className="text-2xl font-bold">{selectedMissao.codigo_demanda}</h2>
+                                    <button onClick={() => setSelectedMissao(null)} className="text-gray-500 hover:text-gray-700">
+                                        <Icon name="X" />
+                                    </button>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div>
-                                        <h4 className="font-semibold mb-2">Dados do Cliente</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
-                                            <div><strong>Cliente:</strong> {selectedMissao.cliente_interessado || '—'}</div>
-                                            <div><strong>Contato:</strong> {selectedMissao.contato || '—'}</div>
-                                            <div><strong>Tipo de Imóvel:</strong> {selectedMissao.tipo_imovel || '—'}</div>
-                                            <div><strong>Região:</strong> {selectedMissao.regiao_desejada || selectedMissao.regiao_demanda || '—'}</div>
-                                            <div><strong>Faixa:</strong> {selectedMissao.faixa_aluguel || '—'}</div>
-                                            <div><strong>Prazo:</strong> {selectedMissao.prazo_necessidade || '—'}</div>
+                                        <h3 className="font-semibold text-gray-700">Descrição</h3>
+                                        <p className="text-gray-600">{selectedMissao.descricao_busca}</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-700">Status</h3>
+                                            <p className="text-gray-600">{selectedMissao.status}</p>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-700">Captador</h3>
+                                            <p className="text-gray-600">{selectedMissao.captador_responsavel}</p>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <h4 className="font-semibold mb-2">Interações</h4>
-                                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                                        <h3 className="font-semibold text-gray-700 mb-2">Interações</h3>
+                                        <div className="space-y-2 max-h-64 overflow-y-auto">
                                             {interacoes.map(interacao => (
                                                 <div key={interacao.id} className="bg-gray-50 p-3 rounded">
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="font-medium text-sm">{interacao.usuario_nome}</span>
-                                                        <span className="text-xs text-gray-500">{new Date(interacao.data_interacao).toLocaleString()}</span>
-                                                    </div>
-                                                    <p className="text-sm mt-1">{interacao.descricao}</p>
+                                                    <p className="text-sm text-gray-600">{interacao.descricao}</p>
+                                                    <p className="text-xs text-gray-400 mt-1">
+                                                        {new Date(interacao.data_interacao).toLocaleString('pt-BR')}
+                                                    </p>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
 
                                     <div>
-                                        <h4 className="font-semibold mb-2">Adicionar Interação</h4>
-                                        <div className="flex space-x-2">
-                                            <input type="text" value={novaInteracao} onChange={(e) => setNovaInteracao(e.target.value)} placeholder="Digite sua interação..." className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm" />
-                                            <button onClick={addInteracao} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"><Icon name="Plus" /></button>
-                                        </div>
+                                        <h3 className="font-semibold text-gray-700 mb-2">Nova Interação</h3>
+                                        <textarea
+                                            value={novaInteracao}
+                                            onChange={(e) => setNovaInteracao(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            rows={3}
+                                            placeholder="Descreva a interação..."
+                                        />
+                                        <button
+                                            onClick={addInteracao}
+                                            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                        >
+                                            Adicionar Interação
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -791,48 +776,31 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
             );
         };
 
-        // Componente principal de Relatórios
+        // Página de Relatórios
         const RelatoriosPage = () => {
             const [activeTab, setActiveTab] = useState('dashboard');
             const [dashboardData, setDashboardData] = useState(null);
             const [performanceData, setPerformanceData] = useState([]);
-            const [loading, setLoading] = useState(false);
-            const { user } = useAuth();
+            const [loading, setLoading] = useState(true);
 
-            // Carregar dados do dashboard
             useEffect(() => {
                 loadDashboardData();
                 loadPerformanceData();
             }, []);
 
             const loadDashboardData = async () => {
-  setLoading(true);
-  try {
-    const response = await apiRequest('/api/relatorios/dashboard');
-    if (response.ok) {
-      const data = await response.json();
-
-      // Garante que todos os campos existam e não sejam NaN
-      const safeData = {
-        total_demandas: data.total_demandas || 0,
-        demandas_mes: data.demandas_mes || 0,
-        total_missoes: data.total_missoes || 0,
-        missoes_locadas: data.missoes_locadas || 0,
-        missoes_encontradas: data.missoes_encontradas || 0,
-        missoes_em_busca: data.missoes_em_busca || 0,
-        taxa_sucesso: isNaN(data.taxa_sucesso) ? 0 : data.taxa_sucesso || 0
-      };
-
-      console.log("📊 Dados do dashboard carregados:", safeData);
-      setDashboardData(safeData);
-    }
-  } catch (error) {
-    console.error('Erro ao carregar dados do dashboard:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+                try {
+                    const response = await apiRequest('/api/relatorios/dashboard');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setDashboardData(data);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar dashboard:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
 
             const loadPerformanceData = async () => {
                 try {
@@ -846,48 +814,91 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                 }
             };
 
-            const tabs = [
-                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2' },
-                { id: 'performance', label: 'Performance', icon: 'Trophy' },
-                { id: 'demandas', label: 'Demandas', icon: 'FilePlus' },
-                { id: 'historico', label: 'Histórico', icon: 'Clock' }
-            ];
-
-            // Filtrar tabs baseado no tipo de usuário
-            const availableTabs = tabs.filter(tab => {
-                if (user.tipo === 'captador') {
-                    return ['dashboard', 'performance'].includes(tab.id);
-                }
-                return true;
-            });
-
-            // Determinar título baseado no usuário
             const getTitulo = () => {
-                if (user.tipo === 'admin') return 'Relatórios - Visão Geral';
-                if (user.tipo === 'gerente_regional') {
-                    const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(',') : [user.regiao];
-                    return `Relatórios - ${regioes.join(' e ')}`;
+                switch (activeTab) {
+                    case 'dashboard': return 'Dashboard Geral';
+                    case 'performance': return 'Performance dos Captadores';
+                    case 'demandas': return 'Análise de Demandas';
+                    case 'historico': return 'Histórico de Missões';
+                    default: return 'Relatórios';
                 }
-                return 'Meus Relatórios';
             };
 
-            return (
-                <div className="p-6">
-                    <div className="mb-6">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                            {getTitulo()}
-                        </h1>
-                        <p className="text-gray-600">
-                            {user.tipo === 'admin' ? 'Visão geral de todas as regiões' :
-                             user.tipo === 'gerente_regional' ? `Relatórios das suas regiões` :
-                             'Seus relatórios pessoais'}
-                        </p>
-                    </div>
+            const DashboardTab = () => {
+                if (!dashboardData) return <div>Carregando...</div>;
 
-                    {/* Tabs de navegação */}
-                    <div className="border-b border-gray-200 mb-6">
-                        <nav className="-mb-px flex space-x-8">
-                            {availableTabs.map(tab => (
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <KPICard title="Total de Missões" value={dashboardData.totalMissoes || 0} />
+                        <KPICard title="Em Andamento" value={dashboardData.emAndamento || 0} />
+                        <KPICard title="Encontrados" value={dashboardData.encontrados || 0} />
+                        <KPICard title="Locados" value={dashboardData.locados || 0} />
+                    </div>
+                );
+            };
+
+            const PerformanceTab = () => (
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Captador</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Missões</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Encontrados</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Locados</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taxa</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {performanceData.map((captador, index) => (
+                                <tr key={index}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{captador.nome}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.totalMissoes}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.encontrados}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.locados}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{captador.taxa}%</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+
+            const DemandasTab = () => (
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <p className="text-gray-600">Análise de demandas em desenvolvimento...</p>
+                </div>
+            );
+
+            const HistoricoTab = () => (
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <p className="text-gray-600">Histórico de missões em desenvolvimento...</p>
+                </div>
+            );
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center h-64">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                            <p className="mt-4 text-gray-600">Carregando relatórios...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    <h2 className="text-3xl font-bold mb-6 text-gray-800">{getTitulo()}</h2>
+                    
+                    <div className="mb-6 border-b border-gray-200">
+                        <nav className="flex space-x-8">
+                            {[
+                                { id: 'dashboard', label: 'Dashboard' },
+                                { id: 'performance', label: 'Performance' },
+                                { id: 'demandas', label: 'Demandas' },
+                                { id: 'historico', label: 'Histórico' }
+                            ].map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
@@ -897,244 +908,66 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                                 >
-                                    <Icon name={tab.icon} />
                                     {tab.label}
                                 </button>
                             ))}
                         </nav>
                     </div>
 
-                    {/* Conteúdo das tabs */}
-                    {loading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                        </div>
-                    ) : (
-                        <>
-                            {activeTab === 'dashboard' && <DashboardTab data={dashboardData} />}
-                            {activeTab === 'performance' && <PerformanceTab data={performanceData} />}
-                            {activeTab === 'demandas' && <DemandasTab />}
-                            {activeTab === 'historico' && <HistoricoTab />}
-                        </>
-                    )}
-                </div>
-            );
-        };
-
-        // Tab do Dashboard
-        const DashboardTab = ({ data }) => {
-            if (!data) {
-                return <div className="text-center py-8">Carregando dados...</div>;
-            }
-
-            return (
-                <div className="space-y-6">
-                    {/* KPIs principais */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <KPICard 
-                            title="Total de Demandas" 
-                            value={data.totalDemandas} 
-                            icon="FilePlus"
-                            color="blue"
-                        />
-                        <KPICard 
-                            title="Demandas do Mês" 
-                            value={data.demandasMes} 
-                            icon="Calendar"
-                            color="green"
-                        />
-                        <KPICard 
-                            title="Total de Missões" 
-                            value={data.totalMissoes} 
-                            icon="Briefcase"
-                            color="purple"
-                        />
-                        <KPICard 
-                            title="Taxa de Sucesso" 
-                            value={`${Number(data.taxaSucesso || 0)}%`}
-                            icon="Trophy"
-                            color="yellow"
-                        />
-                    </div>
-
-                    {/* Gráficos e métricas adicionais */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-lg shadow">
-                            <h3 className="text-lg font-semibold mb-4">Resumo de Atividades</h3>
-                            <div className="space-y-3">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Missões Locadas</span>
-                                    <span className="font-semibold text-green-600">{data.missoesLocadas}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Missões Ativas</span>
-                                    <span className="font-semibold text-blue-600">{data.totalMissoes - data.missoesLocadas}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Eficiência</span>
-                                    <span className="font-semibold text-purple-600">{data.taxaSucesso}%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-6 rounded-lg shadow">
-                            <h3 className="text-lg font-semibold mb-4">Tendências</h3>
-                            <div className="text-center py-8 text-gray-500">
-                                <Icon name="BarChart2" />
-                                <p>Gráfico de tendências será implementado aqui</p>
-                            </div>
-                        </div>
+                    <div>
+                        {activeTab === 'dashboard' && <DashboardTab />}
+                        {activeTab === 'performance' && <PerformanceTab />}
+                        {activeTab === 'demandas' && <DemandasTab />}
+                        {activeTab === 'historico' && <HistoricoTab />}
                     </div>
                 </div>
             );
         };
 
-        // Tab de Performance
-        const PerformanceTab = ({ data }) => {
-            return (
-                <div className="space-y-6">
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold">Performance dos Captadores</h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Captador
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Região
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Total Missões
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Locadas
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Encontradas
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Em Busca
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Taxa de Sucesso
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {data.map((captador) => (
-                                        <tr key={captador.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <Icon name="User" />
-                                                    <span className="font-medium text-gray-900">{captador.captador_nome}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {captador.regiao}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {captador.total_missoes}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    {captador.missoes_locadas}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    {captador.missoes_encontradas}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                    {captador.missoes_em_busca}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <div className="flex items-center">
-                                                    <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                                        <div 
-                                                            className="bg-green-600 h-2 rounded-full" 
-                                                            style={{ width: `${captador.taxa_sucesso || 0}%` }}
-                                                        ></div>
-                                                    </div>
-                                                    <span className="font-medium">{captador.taxa_sucesso || 0}%</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Tab de Demandas (simplificada para o exemplo)
-        const DemandasTab = () => {
-            return (
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-4">Relatório de Demandas</h3>
-                    <p className="text-gray-600">Funcionalidade de relatório de demandas será implementada aqui.</p>
-                </div>
-            );
-        };
-
-        // Tab de Histórico (simplificada para o exemplo)
-        const HistoricoTab = () => {
-            return (
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-4">Histórico de Relatórios</h3>
-                    <p className="text-gray-600">Histórico de relatórios gerados será implementado aqui.</p>
-                </div>
-            );
-        };
-
-        // Componente de navegação lateral
-        const Sidebar = ({ activeView, setActiveView, user }) => {
-            const { logout } = useAuth();
-
-            const menuItems = [
-                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['admin', 'gerente_regional', 'captador'] },
-                { id: 'demandas', label: 'Demandas', icon: 'FilePlus', roles: ['admin', 'gerente_regional'] },
-                { id: 'missoes', label: 'Missões', icon: 'Briefcase', roles: ['admin', 'gerente_regional', 'captador'] },
-                { id: 'relatorios', label: 'Relatórios', icon: 'BarChart2', roles: ['admin', 'gerente_regional', 'captador'] },
-                { id: 'usuarios', label: 'Usuários', icon: 'Users', roles: ['admin'] }
-            ];
-
-            const availableItems = menuItems.filter(item => item.roles.includes(user.tipo));
-
-            // Determinar título do usuário
+        // Sidebar
+        const Sidebar = ({ activeView, setActiveView, user, onLogout }) => {
             const getUserTitle = () => {
-                if (user.tipo === 'admin') return 'Administrador';
-                if (user.tipo === 'gerente_regional') {
-                    const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(',') : [user.regiao];
-                    return `Gerente - ${regioes.join(' e ')}`;
-                }
+                if (user.cargo === 'diretor') return 'Diretor';
+                if (user.cargo === 'gerente_regional') return 'Gerente Regional';
                 return 'Captador';
             };
 
+            const menuItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'BarChart2', roles: ['diretor', 'gerente_regional', 'captador'] },
+                { id: 'kanban', label: 'Missões', icon: 'Columns', roles: ['diretor', 'gerente_regional', 'captador'] },
+                { id: 'relatorios', label: 'Relatórios', icon: 'Trophy', roles: ['diretor', 'gerente_regional'] }
+            ];
+
+            const filteredMenuItems = menuItems.filter(item => item.roles.includes(user.cargo));
+
             return (
-                <div className="bg-white shadow-lg h-screen w-64 fixed left-0 top-0 overflow-y-auto">
-                    <div className="p-6">
-                        <h1 className="text-xl font-bold text-gray-800">Imóvel Certo</h1>
-                        <p className="text-sm text-gray-600 mt-1">
-                            {getUserTitle()}
-                        </p>
+                <div className="w-64 bg-white shadow-lg h-screen flex flex-col">
+                    <div className="p-6 border-b">
+                        <h1 className="text-2xl font-bold text-blue-600">Imóvel Certo</h1>
+                        <p className="text-sm text-gray-600 mt-1">Gestão de Captação</p>
                     </div>
-                    
-                    <nav className="mt-6">
-                        {availableItems.map(item => (
+
+                    <div className="p-4 border-b">
+                        <div className="flex items-center">
+                            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                {user.nome.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm font-semibold text-gray-900">{user.nome}</p>
+                                <p className="text-xs text-gray-600">{getUserTitle()}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <nav className="flex-1 p-4">
+                        {filteredMenuItems.map(item => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveView(item.id)}
-                                className={`w-full text-left px-6 py-3 flex items-center hover:bg-gray-50 ${
-                                    activeView === item.id ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-700'
+                                className={`w-full flex items-center px-4 py-3 mb-2 rounded-lg transition-colors ${
+                                    activeView === item.id
+                                        ? 'bg-blue-50 text-blue-600 font-semibold'
+                                        : 'text-gray-700 hover:bg-gray-50'
                                 }`}
                             >
                                 <Icon name={item.icon} />
@@ -1143,133 +976,104 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                         ))}
                     </nav>
 
-                    <div className="absolute bottom-0 w-full p-6">
-                        <div className="border-t pt-4">
-                            <p className="text-sm text-gray-600 mb-2">{user.nome}</p>
-                            <button
-                                onClick={logout}
-                                className="w-full text-left text-red-600 hover:text-red-800 flex items-center"
-                            >
-                                <Icon name="LogOut" />
-                                Sair
-                            </button>
-                        </div>
+                    <div className="p-4 border-t">
+                        <button
+                            onClick={onLogout}
+                            className="w-full flex items-center px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                            <Icon name="LogOut" />
+                            Sair
+                        </button>
                     </div>
                 </div>
             );
         };
 
-        // Componente principal do Dashboard
+        // Dashboard Principal
         const Dashboard = () => {
+            const { user, logout } = useAuth();
             const [activeView, setActiveView] = useState('dashboard');
             const [missoes, setMissoes] = useState([]);
-            const [demandas, setDemandas] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const { user } = useAuth();
+            const [showNovaDemanda, setShowNovaDemanda] = useState(false);
+            const [refreshTrigger, setRefreshTrigger] = useState(0);
 
             useEffect(() => {
-                loadData();
-            }, []);
+                loadMissoes();
+            }, [refreshTrigger]);
 
-            const loadData = async () => {
-                console.log('[Dashboard] loadData chamado');
+            const loadMissoes = async () => {
                 try {
-                    const [missoesRes, demandasRes] = await Promise.all([
-                        apiRequest('/api/missoes'),
-                        apiRequest('/api/demandas')
-                    ]);
-
-                    if (missoesRes.ok) {
-                        const missoesData = await missoesRes.json();
-                        console.log('[Dashboard] Missões carregadas:', missoesData.length);
-                        setMissoes(missoesData);
-                    }
-
-                    if (demandasRes.ok) {
-                        const demandasData = await demandasRes.json();
-                        console.log('[Dashboard] Demandas carregadas:', demandasData.length);
-                        setDemandas(demandasData);
+                    const response = await apiRequest('/api/missoes');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setMissoes(data);
                     }
                 } catch (error) {
-                    console.error('Erro ao carregar dados:', error);
-                } finally {
-                    setLoading(false);
+                    console.error('Erro ao carregar missões:', error);
                 }
             };
 
-            const syncMissions = async () => {
-                if (!window.confirm('Deseja sincronizar as demandas com as missões? Isso criará missões para demandas que ainda não possuem.')) {
-                    return;
-                }
-                try {
-                    const response = await apiRequest('/api/sync-missions', { method: 'POST' });
-                    if (response.ok) {
-                        const result = await response.json();
-                        alert(`Sincronização concluída!\n\nMissões criadas: ${result.missionsCreated}\nMissões já existentes: ${result.missionsAlreadyExist}\nDemandas sem captador: ${result.demandsWithoutCaptador}`);
-                        loadData(); // Recarregar os dados após a sincronização
-                    } else {
-                        alert('Erro ao sincronizar missões. Verifique o console para mais detalhes.');
-                    }
-                } catch (error) {
-                    console.error('Erro ao sincronizar missões:', error);
-                    alert('Erro ao sincronizar missões. Verifique o console para mais detalhes.');
-                }
+            const handleRefresh = () => {
+                setRefreshTrigger(prev => prev + 1);
             };
 
             const renderContent = () => {
-                if (loading) {
-                    return (
-                        <div className="flex justify-center items-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                        </div>
-                    );
-                }
-
                 switch (activeView) {
+                    case 'dashboard':
+                        return user.cargo === 'captador' 
+                            ? <PainelCaptador missoes={missoes} user={user} />
+                            : <PainelExecutivo missoes={missoes} />;
+                    case 'kanban':
+                        return <MissoesKanban user={user} missoesExternas={missoes} onRefresh={handleRefresh} />;
                     case 'relatorios':
                         return <RelatoriosPage />;
-                    case 'dashboard':
-                        return user.tipo === 'captador' ? 
-                            <PainelCaptador missoes={missoes} user={user} /> :
-                            <PainelExecutivo missoes={missoes} demandas={demandas} />;
-                    case 'demandas':
-                        return <NovaDemanda onDemandaCriada={loadData} />;
-                    case 'missoes':
-                        return <MissoesKanban user={user} onRefresh={loadData} />;
-
                     default:
-                        return (
-                            <div className="p-6">
-                                <h2 className="text-2xl font-bold mb-4">
-                                    {activeView.charAt(0).toUpperCase() + activeView.slice(1)}
-                                </h2>
-                                <p className="text-gray-600">
-                                    Esta funcionalidade será implementada em breve.
-                                </p>
-                            </div>
-                        );
+                        return <div>Selecione uma opção no menu</div>;
                 }
             };
 
             return (
-                <div className="flex">
-                    <Sidebar activeView={activeView} setActiveView={setActiveView} user={user} />
-                    <div className="ml-64 flex-1 min-h-screen bg-gray-50">
-                        {(user.tipo === 'admin' || user.tipo === 'diretor') && (
-                            <div className="p-4 bg-yellow-50 border-b border-yellow-200">
-                                <button 
-                                    onClick={syncMissions}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                                >
-                                    🔄 Sincronizar Demandas com Missões
-                                </button>
-                                <span className="ml-3 text-sm text-gray-600">
-                                    Clique para criar missões para demandas que ainda não possuem.
-                                </span>
+                <div className="flex h-screen bg-gray-100">
+                    <Sidebar activeView={activeView} setActiveView={setActiveView} user={user} onLogout={logout} />
+                    
+                    <div className="flex-1 overflow-auto">
+                        <div className="p-8">
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-800">
+                                        Bem-vindo, {user.nome}!
+                                    </h1>
+                                    <p className="text-gray-600">
+                                        {new Date().toLocaleDateString('pt-BR', { 
+                                            weekday: 'long', 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric' 
+                                        })}
+                                    </p>
+                                </div>
+                                
+                                {(user.cargo === 'diretor' || user.cargo === 'gerente_regional') && (
+                                    <button
+                                        onClick={() => setShowNovaDemanda(true)}
+                                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        <Icon name="FilePlus" />
+                                        Nova Demanda
+                                    </button>
+                                )}
                             </div>
-                        )}
-                        {renderContent()}
+
+                            {renderContent()}
+                        </div>
                     </div>
+
+                    {showNovaDemanda && (
+                        <NovaDemanda 
+                            onClose={() => setShowNovaDemanda(false)} 
+                            onSuccess={handleRefresh}
+                        />
+                    )}
                 </div>
             );
         };
@@ -1282,7 +1086,7 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                 return (
                     <div className="min-h-screen flex items-center justify-center">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
                             <p className="mt-4 text-gray-600">Carregando...</p>
                         </div>
                     </div>
@@ -1299,6 +1103,7 @@ const MissoesKanban = ({ user, missoesExternas, onRefresh }) => {
                 <App />
             </AuthProvider>
         );
-</script>
+    </script>
 </body>
 </html>
+
