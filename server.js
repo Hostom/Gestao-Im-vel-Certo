@@ -589,15 +589,15 @@ app.post("/api/demandas", authenticateToken, verificarPermissaoRegional, async (
     console.log(req.body);
     // Aceita nomes camelCase do frontend
     const {
-        codigoDemanda,
-        consultorLocacao,
-        clienteInteressado,
+        codigo_demanda,
+        consultor_locacao,
+        cliente_interessado,
         contato,
-        tipoImovel,
-        regiaoDesejada,
-        faixaAluguel,
-        caracteristicasDesejadas,
-        prazoNecessidade,
+        tipo_imovel,
+        regiao_desejada,
+        faixa_aluguel,
+        caracteristicas_desejadas,
+        prazo_necessidade,
         observacoes,
         regiaoDemanda
     } = req.body || {};
@@ -611,16 +611,16 @@ const regiaoFinal = normalizarRegiao(regiaoDemanda || regiaoDesejada || req.user
 
     // Mapear para snake_case para inserir no DB
     const mapped = {
-        codigo_demanda: codigoDemanda || `DEM-${Date.now()}`,
-        consultor_locacao: consultorLocacao,
-        cliente_interessado: clienteInteressado,
+        codigo_demanda: codigo_demanda || `DEM-${Date.now()}`,
+        consultor_locacao: consultor_locacao,
+        cliente_interessado: cliente_interessado,
         contato: contato,
-        tipo_imovel: tipoImovel,
-        regiao_desejada: regiaoDesejada || regiaoFinal,
+        tipo_imovel: tipo_imovel,
+        regiao_desejada: regiao_desejada || regiaoFinal,
         regiao_demanda: regiaoFinal,
-        faixa_aluguel: faixaAluguel,
-        caracteristicas_desejadas: caracteristicasDesejadas,
-        prazo_necessidade: prazoNecessidade,
+        faixa_aluguel: faixa_aluguel,
+        caracteristicas_desejadas: caracteristicas_desejadas,
+        prazo_necessidade: prazo_necessidade,
         observacoes: observacoes,
         criado_por_id: req.user.id
     };
