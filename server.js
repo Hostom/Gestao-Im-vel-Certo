@@ -468,10 +468,12 @@ app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
             m.data_locado,
             d.regiao_demanda,
             d.consultor_locacao,
+            u.nome AS captador_nome,
             EXTRACT(EPOCH FROM (m.data_encontrado - m.data_missao)) / 3600 AS tempo_em_busca_horas,
             EXTRACT(EPOCH FROM (m.data_locado - m.data_encontrado)) / 3600 AS tempo_encontrado_locado_horas
         FROM missoes m
         JOIN demandas d ON m.demanda_id = d.id
+        LEFT JOIN usuarios u ON m.captador_id = u.id
     `;
     let whereClauses = [];
     let params = [];
@@ -1083,3 +1085,4 @@ app.post("/api/sync-missions", authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor ao sincronizar missões." });
     }
 });
+
