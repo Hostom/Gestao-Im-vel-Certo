@@ -336,7 +336,7 @@
             const { user } = useAuth();
             const [formData, setFormData] = useState({
                 codigo_demanda: `DEM-${Date.now()}`,
-                consultor_locacao: user?.nome || '',
+                consultor_locacao: '',
                 cliente_interessado: '',
                 contato: '',
                 tipo_imovel: 'Apartamento',
@@ -365,7 +365,7 @@
                         onSuccess();
                         setFormData({
                             codigo_demanda: `DEM-${Date.now()}`,
-                            consultor_locacao: user?.nome || '',
+                            consultor_locacao: '',
                             cliente_interessado: '',
                             contato: '',
                             tipo_imovel: 'Apartamento',
@@ -451,13 +451,19 @@
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
-                            <FormInput
+                            <FormSelect
                                 label="Faixa de Aluguel"
                                 name="faixa_aluguel"
                                 value={formData.faixa_aluguel}
                                 onChange={handleChange}
                                 required
-                                placeholder="Ex: de 8mil a 10mil"
+                                options={[
+                                    { value: '', label: 'Selecione...' },
+                                    { value: 'de 8mil a 10mil', label: 'de 8mil a 10mil' },
+                                    { value: 'de 10mil a 12mil', label: 'de 10mil a 12mil' },
+                                    { value: 'de 12mil a 15mil', label: 'de 12mil a 15mil' },
+                                    { value: 'de 15mil a 20mil', label: 'de 15mil a 20mil' }
+                                ]}
                             />
 
                             <FormSelect
