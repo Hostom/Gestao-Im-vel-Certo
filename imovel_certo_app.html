@@ -80,12 +80,16 @@
                     body: options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined,
                 });
 
-                if (response.status === 401 || response.status === 403) {
+                if (response.status === 401) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
                     alert('Sessão expirada. Faça login novamente.');
                     window.location.reload();
                     return new Promise(() => {});
+                }
+                if (response.status === 403) {
+                    // Não derruba a sessão em caso de permissão negada
+                    alert('Acesso negado para esta ação.');
                 }
 
                 return response;
@@ -755,7 +759,7 @@
             const [novaInteracao, setNovaInteracao] = useState('');
             const [loading, setLoading] = useState(true);
 
-            const columns = ['Em busca', 'Encontrado', 'Locado', 'Sem opção'];
+            const columns = ['Em busca', 'Encontrado', 'Locado'];
 
             const loadMissoes = useCallback(async () => {
                 setLoading(true);
@@ -763,7 +767,7 @@
                     const response = await apiRequest('/api/missoes');
                     if (response.ok) {
                         const data = await response.json();
-                        const filteredData = user.tipo === 'captador' 
+                        const filteredData = ((user.cargo || user.tipo) === 'captador') 
                             ? data.filter(missao => missao.captador_id === user.id) 
                             : data;
                         setMissoes(filteredData);
@@ -895,7 +899,7 @@
                                             >
                                                 <div className="flex justify-between items-start mb-2">
                                                     <h4 className="font-semibold text-gray-900">{missao.codigo_demanda}</h4>
-                                                    <div className={`w-3 h-3 rounded-full ${getSLAColor(missao.data_criacao)}`}></div>
+                                                <div className={`w-3 h-3 rounded-full ${getSLAColor(missao.data_missao)}`}></div>
                                                 </div>
                                                 <p className="text-sm text-gray-600 mb-2">{missao.descricao_busca}</p>
                                                 <div className="flex justify-between items-center text-xs text-gray-500">
