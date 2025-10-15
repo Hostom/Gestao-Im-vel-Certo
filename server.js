@@ -246,49 +246,6 @@ const requireDiretor = (req, res, next) => {
 };
 
 // --- Rotas de autenticação ---
-app.post("/api/demandas", authenticateToken, async (req, res) => {
-    const { codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes } = req.body;
-    const criado_por_id = req.user.id;
-
-    // Determinar regiao_demanda com base em regiao_desejada
-    let regiao_demanda = 'Geral';
-    if (regiao_desejada.includes('Itapema')) {
-        regiao_demanda = 'Itapema';
-    } else if (regiao_desejada.includes('Balneario_Camboriu') || regiao_desejada.includes('Balneário Camboriú')) {
-        regiao_demanda = 'Balneario_Camboriu';
-    } else if (regiao_desejada.includes('Itajai') || regiao_desejada.includes('Itajaí')) {
-        regiao_demanda = 'Itajai';
-    }
-
-    try {
-        // Inserir na tabela demandas
-        const demandaResult = await pool.query(
-            `INSERT INTO demandas (
-                codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, criado_por_id, regiao_demanda
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-            [codigo_demanda, consultor_locacao, cliente_interessado, contato, tipo_imovel, regiao_desejada, faixa_aluguel, caracteristicas_desejadas, prazo_necessidade, observacoes, criado_por_id, regiao_demanda]
-        );
-        const demanda_id = demandaResult.rows[0].id;
-
-        // Criar uma missão associada
-        // Assumindo que o captador_responsavel é o consultor_locacao e que o consultor_solicitante é o usuário logado
-        // Você pode precisar de uma lógica mais sofisticada para encontrar o captador_id
-        const captadorResult = await pool.query("SELECT id FROM usuarios WHERE nome = $1 AND tipo = 'captador'", [consultor_locacao]);
-        const captador_id = captadorResult.rows.length > 0 ? captadorResult.rows[0].id : null;
-
-        await pool.query(
-            `INSERT INTO missoes (
-                demanda_id, codigo_demanda, captador_responsavel, captador_id, consultor_solicitante, regiao_bairro, descricao_busca, criado_por_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [demanda_id, codigo_demanda, consultor_locacao, captador_id, req.user.nome, regiao_desejada, caracteristicas_desejadas, criado_por_id]
-        );
-
-        res.status(201).json({ message: "Demanda e missão criadas com sucesso!" });
-    } catch (error) {
-        console.error("Erro ao criar demanda e missão:", error);
-        res.status(500).json({ error: "Erro interno do servidor ao criar demanda e missão." });
-    }
-});
 
 app.post("/api/login", async (req, res) => {
     const { email, senha } = req.body;
