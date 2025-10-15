@@ -453,6 +453,7 @@ app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
         console.log("DEBUG - Relatório performance - user:", user);
         console.log("DEBUG - Relatório performance - query params:", { regiao, data_inicio, data_fim });
 
+        // Query simplificada para evitar problemas de JOIN
         let query = `
             SELECT
                 m.id,
@@ -461,9 +462,9 @@ app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
                 m.data_missao,
                 m.data_encontrado,
                 m.data_locado,
-                d.regiao_demanda,
-                d.consultor_locacao,
-                u.nome AS captador_nome,
+                m.regiao_bairro,
+                m.consultor_solicitante,
+                m.captador_responsavel,
                 CASE 
                     WHEN m.data_encontrado IS NOT NULL AND m.data_missao IS NOT NULL 
                     THEN EXTRACT(EPOCH FROM (m.data_encontrado - m.data_missao)) / 3600 
@@ -473,10 +474,20 @@ app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
                     WHEN m.data_locado IS NOT NULL AND m.data_encontrado IS NOT NULL 
                     THEN EXTRACT(EPOCH FROM (m.data_locado - m.data_encontrado)) / 3600 
                     ELSE NULL 
-                END AS tempo_encontrado_locado_horas
+                END AS tempo_encontrado_locado_horas,
+                CASE 
+                    WHEN m.data_missao IS NOT NULL 
+                    THEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - m.data_missao)) / 3600 
+                    ELSE NULL 
+                END AS tempo_total_horas,
+                CASE 
+                    WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - m.data_missao)) / 3600 > 24 
+                    THEN 'ATRASADA'
+                    WHEN EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - m.data_missao)) / 3600 > 12 
+                    THEN 'ALERTA'
+                    ELSE 'OK'
+                END AS status_prazo
             FROM missoes m
-            LEFT JOIN demandas d ON m.demanda_id = d.id
-            LEFT JOIN usuarios u ON m.captador_id = u.id
         `;
         let whereClauses = [];
         let params = [];
@@ -489,14 +500,14 @@ app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
         } else if (user.cargo === "gerente_regional") {
             const userRegions = user.regioes_responsavel ? user.regioes_responsavel.split(",").map(r => r.trim()) : [user.regiao];
             const placeholders = userRegions.map((_, i) => `$${paramIndex + i}`).join(",");
-            whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
+            whereClauses.push(`m.regiao_bairro IN (${placeholders})`);
             params = params.concat(userRegions);
             paramIndex += userRegions.length;
         }
 
         // Filtros adicionais
         if (regiao) {
-            whereClauses.push(`d.regiao_demanda = $${paramIndex++}`);
+            whereClauses.push(`m.regiao_bairro = $${paramIndex++}`);
             params.push(regiao);
         }
         if (data_inicio) {
@@ -1005,11 +1016,65 @@ res.status(500).json({ error: 'Erro ao gerar histórico' });
 }
 });
 
+// Função para redistribuir missões atrasadas
+async function redistribuirMissoesAtrasadas() {
+    try {
+        const client = await pool.connect();
+        
+        // Buscar missões com mais de 24 horas em "Em busca"
+        const { rows: missoesAtrasadas } = await client.query(`
+            SELECT m.*, d.regiao_demanda 
+            FROM missoes m 
+            LEFT JOIN demandas d ON m.demanda_id = d.id 
+            WHERE m.status = 'Em busca' 
+            AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - m.data_missao)) / 3600 > 24
+        `);
+        
+        console.log(`🔄 Encontradas ${missoesAtrasadas.length} missões atrasadas para redistribuir`);
+        
+        for (const missao of missoesAtrasadas) {
+            // Buscar outros captadores na mesma região
+            const { rows: outrosCaptadores } = await client.query(`
+                SELECT id, nome FROM usuarios 
+                WHERE tipo = 'captador' 
+                AND regiao = $1 
+                AND id != $2
+                AND ativo = TRUE
+                ORDER BY RANDOM()
+                LIMIT 1
+            `, [missao.regiao_demanda || missao.regiao_bairro, missao.captador_id]);
+            
+            if (outrosCaptadores.length > 0) {
+                const novoCaptador = outrosCaptadores[0];
+                
+                // Atualizar missão com novo captador
+                await client.query(`
+                    UPDATE missoes 
+                    SET captador_id = $1, captador_responsavel = $2, data_missao = CURRENT_TIMESTAMP
+                    WHERE id = $3
+                `, [novoCaptador.id, novoCaptador.nome, missao.id]);
+                
+                console.log(`✅ Missão ${missao.codigo_demanda} redistribuída para ${novoCaptador.nome}`);
+            } else {
+                console.log(`⚠️ Nenhum captador disponível para missão ${missao.codigo_demanda}`);
+            }
+        }
+        
+        client.release();
+    } catch (error) {
+        console.error("❌ Erro ao redistribuir missões:", error);
+    }
+}
+
+// Executar redistribuição a cada 30 minutos
+setInterval(redistribuirMissoesAtrasadas, 30 * 60 * 1000);
+
 // Inicializar DB e iniciar servidor
 initializeDb()
     .then(() => {
         app.listen(PORT, () => {
             console.log(`Servidor rodando na porta ${PORT}`);
+            console.log(`🔄 Sistema de redistribuição automática ativado (verificação a cada 30min)`);
         });
     })
     .catch(err => {
@@ -1017,6 +1082,21 @@ initializeDb()
         process.exit(1);
     });
 
+
+// POST /api/redistribuir-missoes - Forçar redistribuição de missões atrasadas
+app.post("/api/redistribuir-missoes", authenticateToken, async (req, res) => {
+    if (!(req.user.cargo === "admin" || req.user.cargo === "diretor")) {
+        return res.status(403).json({ error: "Acesso negado. Apenas administradores/diretor podem redistribuir missões." });
+    }
+    
+    try {
+        await redistribuirMissoesAtrasadas();
+        res.json({ message: "Redistribuição de missões executada com sucesso." });
+    } catch (error) {
+        console.error("Erro ao redistribuir missões:", error);
+        res.status(500).json({ error: "Erro interno do servidor ao redistribuir missões." });
+    }
+});
 
 // POST /api/sync-missions - Sincronizar demandas com missões (apenas para admin/diretor)
 app.post("/api/sync-missions", authenticateToken, async (req, res) => {
