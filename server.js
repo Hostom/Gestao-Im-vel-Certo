@@ -223,33 +223,40 @@ const authenticateToken = (req, res, next) => {
 // Novo middleware de permissão regional (suporta 'diretor')
 const verificarPermissaoRegional = (req, res, next) => {
     const user = req.user;
+    
+    console.log("DEBUG verificarPermissaoRegional - user:", user);
+    console.log("DEBUG verificarPermissaoRegional - user.cargo:", user.cargo);
 
     // Diretor e Admin têm acesso total
-    if (user.tipo === "diretor" || user.tipo === "admin") {
+    if (user.cargo === "diretor" || user.cargo === "admin") {
         // Poderíamos carregar dinamicamente as regiões do DB; por simplicidade, deixamos o 'Geral' e regiões conhecidas.
         req.regioesPermitidas = ["Geral", "Itapema", "Balneario_Camboriu", "Itajai"];
+        console.log("DEBUG - Admin/Diretor - regioesPermitidas:", req.regioesPermitidas);
         return next();
     }
 
     // Gerente regional: acesso às regiões sob sua responsabilidade
-    if (user.tipo === "gerente_regional") {
+    if (user.cargo === "gerente_regional") {
         const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(",") : [user.regiao];
         req.regioesPermitidas = regioes.map(r => r.trim());
+        console.log("DEBUG - Gerente - regioesPermitidas:", req.regioesPermitidas);
         return next();
     }
 
     // Captador: acesso somente à própria região
-    if (user.tipo === "captador") {
+    if (user.cargo === "captador") {
         req.regioesPermitidas = [user.regiao];
+        console.log("DEBUG - Captador - regioesPermitidas:", req.regioesPermitidas);
         return next();
     }
 
-    return res.status(403).json({ error: "Acesso negado." });
+    console.log("DEBUG - Tipo de usuário não reconhecido:", user.cargo);
+    return res.status(403).json({ error: "Acesso negado. Tipo de usuário não reconhecido: " + user.cargo });
 };
 
 // Middleware para checar que o usuário é diretor
 const requireDiretor = (req, res, next) => {
-    if (req.user && (req.user.tipo === "diretor" || req.user.tipo === "admin")) return next();
+    if (req.user && (req.user.cargo === "diretor" || req.user.cargo === "admin")) return next();
     return res.status(403).json({ error: "Acesso restrito: Diretor/Admin apenas." });
 };
 
@@ -349,10 +356,10 @@ app.get("/api/missoes", authenticateToken, async (req, res) => {
     let whereClauses = [];
     let params = [];
 
-    if (req.user.tipo === "captador") {
+    if (req.user.cargo === "captador") {
         whereClauses.push(`m.captador_id = $${params.length + 1}`);
         params.push(req.user.id);
-    } else if (req.user.tipo === "gerente_regional") {
+    } else if (req.user.cargo === "gerente_regional") {
         const regioes = req.user.regioes_responsavel ? req.user.regioes_responsavel.split(",").map(r => r.trim()) : [req.user.regiao];
         const placeholders = regioes.map((_, i) => `$${params.length + i + 1}`).join(",");
         whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
@@ -403,10 +410,10 @@ app.put("/api/missoes/:id/status", authenticateToken, async (req, res) => {
         // Gerentes regionais podem atualizar missões em suas regiões
         // Diretores/Admin podem atualizar qualquer missão
         let permissionClause = ``;
-        if (user.tipo === "captador") {
+        if (user.cargo === "captador") {
             permissionClause = ` AND captador_id = $${paramIndex++}`;
             queryParams.push(user.id);
-        } else if (user.tipo === "gerente_regional") {
+        } else if (user.cargo === "gerente_regional") {
             // Precisa verificar a região da missão
             const missionRegionResult = await pool.query(
                 `SELECT d.regiao_demanda FROM missoes m JOIN demandas d ON m.demanda_id = d.id WHERE m.id = $1`,
@@ -464,10 +471,10 @@ app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
     let paramIndex = 1;
 
     // Lógica de permissão
-    if (user.tipo === "captador") {
+    if (user.cargo === "captador") {
         whereClauses.push(`m.captador_id = $${paramIndex++}`);
         params.push(user.id);
-    } else if (user.tipo === "gerente_regional") {
+    } else if (user.cargo === "gerente_regional") {
         const userRegions = user.regioes_responsavel ? user.regioes_responsavel.split(",").map(r => r.trim()) : [user.regiao];
         const placeholders = userRegions.map((_, i) => `$${paramIndex + i}`).join(",");
         whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
@@ -507,7 +514,7 @@ app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
 app.get("/api/demandas", authenticateToken, async (req, res) => {
     let query = `SELECT * FROM demandas ORDER BY data_solicitacao DESC`;
     let params = [];
-    if (req.user.tipo === "gerente_regional") {
+    if (req.user.cargo === "gerente_regional") {
         const regioes = req.user.regioes_responsavel ? req.user.regioes_responsavel.split(",").map(r => r.trim()) : [req.user.regiao];
         const placeholders = regioes.map((_, i) => `$${i + 1}`).join(",");
         query = `SELECT * FROM demandas WHERE regiao_demanda IN (${placeholders}) ORDER BY data_solicitacao DESC`;
@@ -527,7 +534,7 @@ app.get("/api/demandas", authenticateToken, async (req, res) => {
 
 // GET /api/usuarios (admin)
 app.get("/api/usuarios", authenticateToken, async (req, res) => {
-    if (!(req.user.tipo === "admin" || req.user.tipo === "diretor")) {
+    if (!(req.user.cargo === "admin" || req.user.cargo === "diretor")) {
         return res.status(403).json({ error: "Acesso negado. Apenas administradores/diretor podem acessar." });
     }
     try {
@@ -545,7 +552,7 @@ app.get("/api/usuarios", authenticateToken, async (req, res) => {
 app.get("/api/usuarios/captadores", authenticateToken, verificarPermissaoRegional, async (req, res) => {
     let query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = 'captador' ORDER BY nome`;
     let params = [];
-    if (req.user.tipo === "gerente_regional") {
+    if (req.user.cargo === "gerente_regional") {
         const placeholders = req.regioesPermitidas.map((_, i) => `$${i + 1}`).join(",");
         query = `SELECT id, nome, email, regiao FROM usuarios WHERE tipo = 'captador' AND regiao IN (${placeholders}) ORDER BY nome`;
         params = req.regioesPermitidas;
@@ -697,14 +704,14 @@ app.get("/api/missoes", authenticateToken, verificarPermissaoRegional, async (re
     let paramIndex = 1;
 
     // Lógica de filtro por região para gerentes regionais e captadores
-    if (user.tipo === "gerente_regional") {
+    if (user.cargo === "gerente_regional") {
         // Gerente regional vê missões de suas regiões e missões de captadores sob sua responsabilidade
         // (Assumindo que captadores sob sua responsabilidade estão nas regioesPermitidas)
         if (regioesPermitidas && regioesPermitidas.length > 0) {
             query += ` AND m.regiao_bairro = ANY($${paramIndex++}::text[])`;
             queryParams.push(regioesPermitidas);
         }
-    } else if (user.tipo === "captador") {
+    } else if (user.cargo === "captador") {
         // Captador vê apenas suas próprias missões
         query += ` AND m.captador_id = $${paramIndex++}`; // Filtrar por captador_id
         queryParams.push(user.id);
@@ -997,7 +1004,7 @@ initializeDb()
 
 // POST /api/sync-missions - Sincronizar demandas com missões (apenas para admin/diretor)
 app.post("/api/sync-missions", authenticateToken, async (req, res) => {
-    if (!(req.user.tipo === "admin" || req.user.tipo === "diretor")) {
+    if (!(req.user.cargo === "admin" || req.user.cargo === "diretor")) {
         return res.status(403).json({ error: "Acesso negado. Apenas administradores/diretor podem sincronizar missões." });
     }
 
