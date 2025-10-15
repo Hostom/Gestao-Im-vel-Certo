@@ -207,31 +207,37 @@ const authenticateToken = (req, res, next) => {
     }
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) return res.status(403).json({ error: "Token inválido" });
-        req.user = user;
+        // Normaliza diferenças entre 'tipo' e 'cargo' presentes em versões antigas
+        const normalizedUser = {
+            ...user,
+            tipo: user?.tipo || user?.cargo,
+            cargo: user?.cargo || user?.tipo,
+        };
+        req.user = normalizedUser;
         next();
     });
 };
 
 // Novo middleware de permissão regional (suporta 'diretor')
 const verificarPermissaoRegional = (req, res, next) => {
-    const user = req.user;
+    const user = req.user || {};
+    const tipo = user.tipo || user.cargo; // compatibilidade
 
     // Diretor e Admin têm acesso total
-    if (user.tipo === "diretor" || user.tipo === "admin") {
-        // Poderíamos carregar dinamicamente as regiões do DB; por simplicidade, deixamos o 'Geral' e regiões conhecidas.
+    if (tipo === "diretor" || tipo === "admin") {
         req.regioesPermitidas = ["Geral", "Itapema", "Balneario_Camboriu", "Itajai"];
         return next();
     }
 
     // Gerente regional: acesso às regiões sob sua responsabilidade
-    if (user.tipo === "gerente_regional") {
+    if (tipo === "gerente_regional") {
         const regioes = user.regioes_responsavel ? user.regioes_responsavel.split(",") : [user.regiao];
         req.regioesPermitidas = regioes.map(r => r.trim());
         return next();
     }
 
     // Captador: acesso somente à própria região
-    if (user.tipo === "captador") {
+    if (tipo === "captador") {
         req.regioesPermitidas = [user.regiao];
         return next();
     }
@@ -780,18 +786,116 @@ app.put("/api/missoes/:id", authenticateToken, verificarPermissaoRegional, async
         }
         // caso seja gerente, verificar região da demanda anexada
         const miss = missRows[0];
-        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE codigo_demanda = $1", [miss.codigo_demanda]);
+        const { rows: demandaRows } = await client.query("SELECT regiao_demanda FROM demandas WHERE id = $1", [miss.demanda_id]);
         const regiaoDemanda = demandaRows.length ? demandaRows[0].regiao_demanda : 'Geral';
         if (!req.regioesPermitidas.includes(regiaoDemanda)) {
             client.release();
             return res.status(403).json({ error: "Acesso negado para esta região." });
         }
 
-        const { rows } = await client.query("UPDATE missoes SET status = $1, data_retorno = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *", [status, id]);
+        // Regra adicional: captador só pode atualizar a própria missão
+        const tipo = req.user?.tipo || req.user?.cargo;
+        if (tipo === 'captador' && miss.captador_id !== req.user.id) {
+            client.release();
+            return res.status(403).json({ error: "Apenas o captador responsável pode mover esta missão." });
+        }
+
+        let updateQuery = `UPDATE missoes SET status = $1, data_retorno = CURRENT_TIMESTAMP`;
+        const params = [status, id];
+        if (status === 'Encontrado') {
+            updateQuery += `, data_encontrado = CURRENT_TIMESTAMP`;
+        }
+        if (status === 'Locado') {
+            updateQuery += `, data_locado = CURRENT_TIMESTAMP`;
+        }
+        updateQuery += ` WHERE id = $2 RETURNING *`;
+        const { rows } = await client.query(updateQuery, params);
         client.release();
         res.json(rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar missão:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
+// Interações da missão
+app.get("/api/missoes/:id/interacoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const client = await pool.connect();
+        const { rows: missionRows } = await client.query(
+            `SELECT m.id, m.demanda_id, m.captador_id, d.regiao_demanda
+             FROM missoes m LEFT JOIN demandas d ON m.demanda_id = d.id
+             WHERE m.id = $1`,
+            [id]
+        );
+        if (missionRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        const mission = missionRows[0];
+        if (!req.regioesPermitidas.includes(mission.regiao_demanda)) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado para esta região." });
+        }
+        // Captador só acessa se for o responsável
+        const tipo = req.user?.tipo || req.user?.cargo;
+        if (tipo === 'captador' && mission.captador_id !== req.user.id) {
+            client.release();
+            return res.status(403).json({ error: "Apenas o captador responsável pode ver as interações." });
+        }
+
+        const { rows } = await client.query(
+            `SELECT * FROM interacoes WHERE missao_id = $1 ORDER BY data_interacao DESC`,
+            [id]
+        );
+        client.release();
+        res.json(rows);
+    } catch (err) {
+        console.error("Erro ao buscar interações:", err);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    }
+});
+
+app.post("/api/missoes/:id/interacoes", authenticateToken, verificarPermissaoRegional, async (req, res) => {
+    const { id } = req.params;
+    const { descricao } = req.body || {};
+    if (!descricao || !descricao.trim()) {
+        return res.status(400).json({ error: "Descrição é obrigatória." });
+    }
+    try {
+        const client = await pool.connect();
+        const { rows: missionRows } = await client.query(
+            `SELECT m.id, m.demanda_id, m.captador_id, d.regiao_demanda
+             FROM missoes m LEFT JOIN demandas d ON m.demanda_id = d.id
+             WHERE m.id = $1`,
+            [id]
+        );
+        if (missionRows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "Missão não encontrada." });
+        }
+        const mission = missionRows[0];
+        if (!req.regioesPermitidas.includes(mission.regiao_demanda)) {
+            client.release();
+            return res.status(403).json({ error: "Acesso negado para esta região." });
+        }
+        // Captador só pode adicionar interação se for o responsável
+        const tipo = req.user?.tipo || req.user?.cargo;
+        if (tipo === 'captador' && mission.captador_id !== req.user.id) {
+            client.release();
+            return res.status(403).json({ error: "Apenas o captador responsável pode adicionar interações." });
+        }
+
+        const { rows } = await client.query(
+            `INSERT INTO interacoes (missao_id, usuario_id, usuario_nome, descricao)
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [id, req.user.id, req.user.nome, descricao.trim()]
+        );
+        client.release();
+        res.status(201).json(rows[0]);
+    } catch (err) {
+        console.error("Erro ao adicionar interação:", err);
         res.status(500).json({ error: "Erro interno do servidor" });
     }
 });
