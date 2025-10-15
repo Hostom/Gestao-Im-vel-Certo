@@ -81,9 +81,41 @@
                 });
 
                 if (response.status === 401 || response.status === 403) {
+                    const errorData = await response.json().catch(() => ({}));
+                    
+                    // Se for erro de token expirado, tentar renovar
+                    if (response.status === 401 && errorData.error && errorData.error.includes('Sessão expirada')) {
+                        try {
+                            const refreshResponse = await fetch(`${API_URL}/api/refresh-token`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            
+                            if (refreshResponse.ok) {
+                                const refreshData = await refreshResponse.json();
+                                localStorage.setItem('token', refreshData.token);
+                                
+                                // Repetir a requisição original com o novo token
+                                const newHeaders = {
+                                    ...headers,
+                                    'Authorization': `Bearer ${refreshData.token}`
+                                };
+                                
+                                return await fetch(`${API_URL}${endpoint}`, {
+                                    ...options,
+                                    headers: newHeaders,
+                                    body: options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : undefined,
+                                });
+                            }
+                        } catch (refreshError) {
+                            console.log('Erro ao renovar token:', refreshError);
+                        }
+                    }
+                    
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    alert('Sessão expirada. Faça login novamente.');
+                    localStorage.removeItem('role');
+                    alert(errorData.error || 'Sessão expirada. Faça login novamente.');
                     window.location.reload();
                     return new Promise(() => {});
                 }

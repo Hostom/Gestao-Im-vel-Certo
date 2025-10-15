@@ -202,11 +202,19 @@ app.get("/", (req, res) => {
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
+    
     if (!token) {
         return res.status(401).json({ error: "Token de acesso requerido" });
     }
+    
     jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ error: "Token inválido" });
+        if (err) {
+            console.log("Erro de autenticação:", err.message);
+            if (err.name === 'TokenExpiredError') {
+                return res.status(401).json({ error: "Sessão expirada. Faça login novamente." });
+            }
+            return res.status(403).json({ error: "Token inválido" });
+        }
         req.user = user;
         next();
     });
@@ -271,7 +279,8 @@ app.post("/api/login", async (req, res) => {
     regiao: user.regiao,
     regioes_responsavel: user.regioes_responsavel
   },
-  JWT_SECRET
+  JWT_SECRET,
+  { expiresIn: '24h' } // Token válido por 24 horas
 );
 
 res.json({
@@ -302,6 +311,24 @@ app.post("/api/logout", (req, res) => {
 // GET /api/me
 app.get("/api/me", authenticateToken, (req, res) => {
     res.json(req.user);
+});
+
+// POST /api/refresh-token - Renovar token
+app.post("/api/refresh-token", authenticateToken, (req, res) => {
+    const newToken = jwt.sign(
+        {
+            id: req.user.id,
+            email: req.user.email,
+            nome: req.user.nome,
+            cargo: req.user.cargo,
+            regiao: req.user.regiao,
+            regioes_responsavel: req.user.regioes_responsavel
+        },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+    );
+    
+    res.json({ token: newToken });
 });
 
 // GET /api/missoes
