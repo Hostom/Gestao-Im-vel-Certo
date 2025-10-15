@@ -446,68 +446,84 @@ app.put("/api/missoes/:id/status", authenticateToken, async (req, res) => {
 });
 
 app.get("/api/relatorios/performance", authenticateToken, async (req, res) => {
-    const user = req.user;
-    const { regiao, data_inicio, data_fim } = req.query;
-
-    let query = `
-        SELECT
-            m.id,
-            m.codigo_demanda,
-            m.status,
-            m.data_missao,
-            m.data_encontrado,
-            m.data_locado,
-            d.regiao_demanda,
-            d.consultor_locacao,
-            u.nome AS captador_nome,
-            EXTRACT(EPOCH FROM (m.data_encontrado - m.data_missao)) / 3600 AS tempo_em_busca_horas,
-            EXTRACT(EPOCH FROM (m.data_locado - m.data_encontrado)) / 3600 AS tempo_encontrado_locado_horas
-        FROM missoes m
-        JOIN demandas d ON m.demanda_id = d.id
-        LEFT JOIN usuarios u ON m.captador_id = u.id
-    `;
-    let whereClauses = [];
-    let params = [];
-    let paramIndex = 1;
-
-    // Lógica de permissão
-    if (user.cargo === "captador") {
-        whereClauses.push(`m.captador_id = $${paramIndex++}`);
-        params.push(user.id);
-    } else if (user.cargo === "gerente_regional") {
-        const userRegions = user.regioes_responsavel ? user.regioes_responsavel.split(",").map(r => r.trim()) : [user.regiao];
-        const placeholders = userRegions.map((_, i) => `$${paramIndex + i}`).join(",");
-        whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
-        params = params.concat(userRegions);
-        paramIndex += userRegions.length;
-    }
-
-    // Filtros adicionais
-    if (regiao) {
-        whereClauses.push(`d.regiao_demanda = $${paramIndex++}`);
-        params.push(regiao);
-    }
-    if (data_inicio) {
-        whereClauses.push(`m.data_missao >= $${paramIndex++}`);
-        params.push(data_inicio);
-    }
-    if (data_fim) {
-        whereClauses.push(`m.data_missao <= $${paramIndex++}`);
-        params.push(data_fim);
-    }
-
-    if (whereClauses.length > 0) {
-        query += " WHERE " + whereClauses.join(" AND ");
-    }
-
-    query += " ORDER BY m.data_missao DESC";
-
     try {
+        const user = req.user;
+        const { regiao, data_inicio, data_fim } = req.query;
+
+        console.log("DEBUG - Relatório performance - user:", user);
+        console.log("DEBUG - Relatório performance - query params:", { regiao, data_inicio, data_fim });
+
+        let query = `
+            SELECT
+                m.id,
+                m.codigo_demanda,
+                m.status,
+                m.data_missao,
+                m.data_encontrado,
+                m.data_locado,
+                d.regiao_demanda,
+                d.consultor_locacao,
+                u.nome AS captador_nome,
+                CASE 
+                    WHEN m.data_encontrado IS NOT NULL AND m.data_missao IS NOT NULL 
+                    THEN EXTRACT(EPOCH FROM (m.data_encontrado - m.data_missao)) / 3600 
+                    ELSE NULL 
+                END AS tempo_em_busca_horas,
+                CASE 
+                    WHEN m.data_locado IS NOT NULL AND m.data_encontrado IS NOT NULL 
+                    THEN EXTRACT(EPOCH FROM (m.data_locado - m.data_encontrado)) / 3600 
+                    ELSE NULL 
+                END AS tempo_encontrado_locado_horas
+            FROM missoes m
+            LEFT JOIN demandas d ON m.demanda_id = d.id
+            LEFT JOIN usuarios u ON m.captador_id = u.id
+        `;
+        let whereClauses = [];
+        let params = [];
+        let paramIndex = 1;
+
+        // Lógica de permissão
+        if (user.cargo === "captador") {
+            whereClauses.push(`m.captador_id = $${paramIndex++}`);
+            params.push(user.id);
+        } else if (user.cargo === "gerente_regional") {
+            const userRegions = user.regioes_responsavel ? user.regioes_responsavel.split(",").map(r => r.trim()) : [user.regiao];
+            const placeholders = userRegions.map((_, i) => `$${paramIndex + i}`).join(",");
+            whereClauses.push(`d.regiao_demanda IN (${placeholders})`);
+            params = params.concat(userRegions);
+            paramIndex += userRegions.length;
+        }
+
+        // Filtros adicionais
+        if (regiao) {
+            whereClauses.push(`d.regiao_demanda = $${paramIndex++}`);
+            params.push(regiao);
+        }
+        if (data_inicio) {
+            whereClauses.push(`m.data_missao >= $${paramIndex++}`);
+            params.push(data_inicio);
+        }
+        if (data_fim) {
+            whereClauses.push(`m.data_missao <= $${paramIndex++}`);
+            params.push(data_fim);
+        }
+
+        if (whereClauses.length > 0) {
+            query += " WHERE " + whereClauses.join(" AND ");
+        }
+
+        query += " ORDER BY m.data_missao DESC";
+
+        console.log("DEBUG - Query final:", query);
+        console.log("DEBUG - Params:", params);
+
         const { rows } = await pool.query(query, params);
+        console.log("DEBUG - Resultados encontrados:", rows.length);
         res.json(rows);
     } catch (error) {
-        console.error("Erro ao gerar relatório de performance:", error);
-        res.status(500).json({ error: "Erro interno do servidor ao gerar relatório de performance." });
+        console.error("❌ Erro ao gerar relatório de performance:", error);
+        console.error("❌ Stack trace:", error.stack);
+        res.status(500).json({ error: "Erro interno do servidor ao gerar relatório de performance: " + error.message });
     }
 });
 
@@ -845,7 +861,7 @@ app.put("/api/usuarios/:id/inativar", authenticateToken, requireDiretor, async (
     }
 });
 // Rota do Dashboard (resumo geral)
-app.get('/api/relatorios/dashboard', async (req, res) => {
+app.get('/api/relatorios/dashboard', authenticateToken, async (req, res) => {
 try {
 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 res.setHeader('Pragma', 'no-cache');
@@ -918,7 +934,7 @@ res.status(500).json({ erro: 'Erro ao gerar relatório de dashboard' });
 // ================================
 // Relatórios - Performance Captadores
 // ================================
-app.get('/api/relatorios/performance-captadores', async (req, res) => {
+app.get('/api/relatorios/performance-captadores', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
@@ -942,7 +958,7 @@ app.get('/api/relatorios/performance-captadores', async (req, res) => {
 });
 
 // 🔹 Relatórios - Demandas detalhadas
-app.get('/api/relatorios/demandas', async (req, res) => {
+app.get('/api/relatorios/demandas', authenticateToken, async (req, res) => {
 try {
 const result = await pool.query(`
 SELECT
@@ -967,7 +983,7 @@ res.status(500).json({ error: 'Erro ao gerar relatório de demandas' });
 
 
 // 🔹 Relatórios - Histórico de alterações e ações
-app.get('/api/relatorios/historico', async (req, res) => {
+app.get('/api/relatorios/historico', authenticateToken, async (req, res) => {
 try {
 const result = await pool.query(`
 SELECT
